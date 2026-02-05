@@ -46,3 +46,6 @@ body {
 .font-black {
   font-weight: 900;
 }
+.input {
+  @apply w-full rounded-lg border px-4 py-2;
+}

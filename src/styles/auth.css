@@ -1,0 +1,68 @@
+.auth-bg {
+min-height: 100vh;
+display: flex;
+align-items: center;
+justify-content: center;
+background: linear-gradient(180deg, #0b3a5c, #0a5fa0);
+}
+
+
+.auth-card {
+width: 420px;
+background: #fff;
+border-radius: 14px;
+padding: 28px;
+box-shadow: 0 20px 50px rgba(0,0,0,.25);
+}
+
+
+.tabs {
+display: flex;
+background: #f1f1f1;
+border-radius: 8px;
+margin-bottom: 20px;
+}
+
+
+.tabs button {
+flex: 1;
+padding: 10px;
+border: none;
+background: transparent;
+font-weight: 600;
+cursor: pointer;
+}
+
+
+.tabs button.active {
+background: #fff;
+border-radius: 8px;
+box-shadow: 0 2px 6px rgba(0,0,0,.1);
+}
+
+
+.auth-card h2 {
+margin-bottom: 16px;
+}
+
+
+.auth-card input,
+.auth-card select {
+width: 100%;
+padding: 10px;
+margin-bottom: 12px;
+border-radius: 6px;
+border: 1px solid #ccc;
+}
+
+
+.primary {
+width: 100%;
+background: #e4572e;
+color: #fff;
+border: none;
+padding: 12px;
+border-radius: 8px;
+font-weight: 700;
+margin-top: 10px;
+}

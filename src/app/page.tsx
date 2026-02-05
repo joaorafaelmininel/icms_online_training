@@ -208,9 +208,9 @@ export default async function HomePage() {
 
                 <div className="mt-6">
                   <Link
-                    href="/auth?tab=signup"
+                    href="/auth?tab=signup&redirectTo=/dashboard"
                     className="block w-full rounded-lg bg-[#0B4A7C] px-6 py-3 text-center font-semibold text-white transition hover:bg-[#083457]"
-                  >
+>
                     {language === "en" ? "Enroll Now" : "Inscribirse Ahora"}
                   </Link>
                 </div>

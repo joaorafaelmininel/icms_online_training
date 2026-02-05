@@ -3,6 +3,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
+
+<Link
+  href="/auth?tab=signin&redirectTo=/dashboard"
+  className="rounded-md bg-[#0B4A7C] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#083457]"
+>
+  Sign In
+</Link>;
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import LanguageSwitcher from "./LanguageSwitcher";
 import TrainingsDropdown from "./TrainingsDropdown";
