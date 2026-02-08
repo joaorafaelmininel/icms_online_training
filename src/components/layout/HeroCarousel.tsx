@@ -33,8 +33,8 @@ const slides: Slide[] = [
       es: "Capacitación en Línea ICMS 3.0",
     },
     subtitle: {
-      en: "Master the updated coordination and management system — 11 modules, self-paced",
-      es: "Domina el sistema de coordinación y gestión actualizado — 11 módulos, a tu ritmo",
+      en: "Master the updated coordination and management system — 10 modules, self-paced",
+      es: "Domina el sistema de coordinación y gestión actualizado — 10 módulos, a tu ritmo",
     },
     cta: { en: "Start the course", es: "Iniciar el curso" },
     ctaHref: "/auth?tab=signup",

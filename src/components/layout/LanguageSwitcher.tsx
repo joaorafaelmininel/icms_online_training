@@ -1,96 +1,96 @@
 // src/components/layout/LanguageSwitcher.tsx
-// Language switcher component - EN/ES toggle
+'use client';
 
-"use client";
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import { createBrowserClient } from '@supabase/ssr';
 
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { setLanguageCookie } from "@/lib/i18n/language-client";
-import type { Language } from "@/lib/types/database";
+type Language = 'en' | 'es';
 
 interface LanguageSwitcherProps {
   currentLanguage: Language;
-  userId?: string; // If user is logged in
+  userId?: string;
+  variant?: 'light' | 'dark';
 }
 
-export default function LanguageSwitcher({ 
-  currentLanguage, 
-  userId 
+export default function LanguageSwitcher({
+  currentLanguage,
+  userId,
+  variant = 'dark',
 }: LanguageSwitcherProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [language, setLanguage] = useState<Language>(currentLanguage);
 
   async function handleLanguageChange(newLang: Language) {
-    if (newLang === language) return; // Already selected
-    
+    if (newLang === language || isPending) return;
+
     setLanguage(newLang);
+    document.cookie = `user_language=${newLang}; path=/; max-age=31536000; SameSite=Lax`;
 
     if (userId) {
-      // User is logged in → update in database
-      const supabase = createClient();
-      await supabase
-        .from('profiles')
-        .update({ preferred_language: newLang })
-        .eq('id', userId);
+      try {
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        await supabase
+          .from('profiles')
+          .update({ preferred_language: newLang })
+          .eq('id', userId);
+      } catch (err) {
+        console.error('Failed to update language preference:', err);
+      }
     }
-    
-    // Always set cookie (for faster loading)
-    setLanguageCookie(newLang);
 
-    // Refresh page to apply language
     startTransition(() => {
       router.refresh();
     });
   }
 
+  const flags: { lang: Language; flag: string; label: string }[] = [
+    { lang: 'en', flag: '/flag-gb.svg', label: 'EN' },
+    { lang: 'es', flag: '/flag-es.svg', label: 'ES' },
+  ];
+
   return (
     <div className="flex items-center gap-2">
-      {/* English Button */}
-      <button
-        type="button"
-        onClick={() => handleLanguageChange('en')}
-        disabled={isPending}
-        className={`rounded-sm ring-1 transition px-2 py-1 ${
-          language === 'en'
-            ? 'ring-blue-600 bg-blue-50'
-            : 'ring-black/10 hover:ring-black/20'
-        } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
-        title="English"
-        aria-label="Switch to English"
-      >
-        <Image 
-          src="/flag-gb.svg" 
-          alt="EN" 
-          width={22} 
-          height={16}
-          className={isPending ? 'opacity-50' : ''}
-        />
-      </button>
+      {flags.map(({ lang, flag, label }) => {
+        const isActive = language === lang;
 
-      {/* Spanish Button */}
-      <button
-        type="button"
-        onClick={() => handleLanguageChange('es')}
-        disabled={isPending}
-        className={`rounded-sm ring-1 transition px-2 py-1 ${
-          language === 'es'
-            ? 'ring-blue-600 bg-blue-50'
-            : 'ring-black/10 hover:ring-black/20'
-        } ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
-        title="Español"
-        aria-label="Cambiar a Español"
-      >
-        <Image 
-          src="/flag-es.svg" 
-          alt="ES" 
-          width={22} 
-          height={16}
-          className={isPending ? 'opacity-50' : ''}
-        />
-      </button>
+        const activeClass =
+          variant === 'light'
+            ? 'border-white/40 bg-white/15 text-white shadow-sm'
+            : 'border-[#0B4A7C]/40 bg-[#0B4A7C]/10 text-[#0B4A7C] shadow-sm';
+
+        const inactiveClass =
+          variant === 'light'
+            ? 'border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
+            : 'border-gray-200 bg-transparent text-gray-400 hover:border-gray-300 hover:text-gray-600';
+
+        return (
+          <button
+            key={lang}
+            type="button"
+            onClick={() => handleLanguageChange(lang)}
+            className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold transition ${
+              isActive ? activeClass : inactiveClass
+            } ${isPending ? 'pointer-events-none opacity-60' : ''}`}
+            title={lang === 'en' ? 'English' : 'Español'}
+            aria-label={lang === 'en' ? 'Switch to English' : 'Cambiar a Español'}
+          >
+            <Image
+              src={flag}
+              alt={label}
+              width={20}
+              height={14}
+              className="rounded-sm"
+            />
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }

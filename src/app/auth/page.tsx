@@ -1,19 +1,11 @@
-'use client'
+import { Metadata } from 'next'
+import AuthClient from '@/components/auth/AuthClient'
 
-
-import { useSearchParams } from 'next/navigation'
-import AuthCard from '@/components/AuthCard'
-import '@/styles/auth.css'
-
+export const metadata: Metadata = {
+  title: 'Sign In - ICMS Learning',
+  description: 'Sign in to your ICMS Learning account',
+}
 
 export default function AuthPage() {
-const params = useSearchParams()
-const tab = params.get('tab') === 'signup' ? 'signup' : 'signin'
-
-
-return (
-<main className="auth-bg">
-<AuthCard defaultTab={tab} />
-</main>
-)
+  return <AuthClient />
 }

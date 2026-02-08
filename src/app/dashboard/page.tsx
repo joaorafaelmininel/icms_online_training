@@ -1,52 +1,131 @@
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import { getCurrentLanguage, t } from "@/lib/i18n/language";
-import { dashboard } from "@/lib/i18n/translations";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+// src/app/dashboard/page.tsx
+import { createClient } from '@/lib/supabase/server';
+import { getCurrentLanguage } from '@/lib/i18n/language';
+import { redirect } from 'next/navigation';
+import DashboardClient from '@/components/dashboard/DashboardClient';
+import type {
+  Course,
+  CourseModule,
+  CourseEnrollment,
+  UserModuleProgress,
+  EnrolledCourseData,
+  AvailableCourseData,
+} from '@/lib/types/courses';
+
+export const metadata = {
+  title: 'Dashboard — ICMS Learning Platform',
+};
 
 export default async function DashboardPage() {
-  const language = await getCurrentLanguage();
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const supabase = await createClient();
+  const language = (await getCurrentLanguage()) as 'en' | 'es';
+
+  // Obter utilizador
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect('/auth');
+
+  // Obter perfil
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('first_name, last_name, title')
+    .eq('id', user.id)
+    .single();
+
+  const firstName =
+    profile?.first_name || user.email?.split('@')[0] || 'User';
+
+  // Obter todos os cursos ativos/coming_soon
+  const { data: courses } = await supabase
+    .from('courses')
+    .select('*')
+    .in('status', ['active', 'coming_soon'])
+    .order('created_at', { ascending: true });
+
+  // Obter todos os módulos (ordenados)
+  const { data: allModules } = await supabase
+    .from('course_modules')
+    .select('*')
+    .order('module_number', { ascending: true });
+
+  // Obter matrículas do utilizador
+  const { data: enrollments } = await supabase
+    .from('course_enrollments')
+    .select('*')
+    .eq('user_id', user.id);
+
+  // Obter progresso dos módulos do utilizador
+  const { data: allProgress } = await supabase
+    .from('user_module_progress')
+    .select('*')
+    .eq('user_id', user.id);
+
+  // Construir dados dos cursos matriculados
+  const enrolledCourseIds = new Set(
+    (enrollments || []).map((e: CourseEnrollment) => e.course_id)
+  );
+
+  const enrolledCourses: EnrolledCourseData[] = (enrollments || [])
+    .filter(
+      (e: CourseEnrollment) =>
+        e.status === 'enrolled' ||
+        e.status === 'in_progress' ||
+        e.status === 'completed'
+    )
+    .map((enrollment: CourseEnrollment) => {
+      const course = (courses || []).find(
+        (c: Course) => c.id === enrollment.course_id
+      );
+      if (!course) return null;
+
+      const modules = (allModules || []).filter(
+        (m: CourseModule) => m.course_id === enrollment.course_id
+      );
+      const moduleIds = new Set(modules.map((m: CourseModule) => m.id));
+      const moduleProgress = (allProgress || []).filter(
+        (mp: UserModuleProgress) => moduleIds.has(mp.module_id)
+      );
+      const completedModules = moduleProgress.filter(
+        (mp: UserModuleProgress) => {
+          const mod = modules.find((m: CourseModule) => m.id === mp.module_id);
+          return mp.is_completed === true && (mp.quiz_passed === true || !mod?.quiz_required);
+        }
+      ).length;
+
+      return {
+        enrollment,
+        course,
+        modules,
+        moduleProgress,
+        completedModules,
+        totalModules: modules.length,
+        nextModuleNumber: completedModules + 1,
+      };
+    })
+    .filter(Boolean) as EnrolledCourseData[];
+
+  // Construir dados dos cursos disponíveis
+  const availableCourses: AvailableCourseData[] = (courses || []).map(
+    (course: Course) => {
+      const modules = (allModules || []).filter(
+        (m: CourseModule) => m.course_id === course.id
+      );
+      return {
+        course,
+        modules,
+        isEnrolled: enrolledCourseIds.has(course.id),
+      };
+    }
+  );
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <Header />
-
-      <main className="mx-auto max-w-6xl px-6 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {t(dashboard.welcomeBack, language)}!
-          </h1>
-          <p className="mt-2 text-gray-600">
-            {t(dashboard.subtitle, language)}
-          </p>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Course Card - Placeholder */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              ICMS 3.0 Training
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Complete training course
-            </p>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">0% complete</span>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm">
-                {t(dashboard.startCourse, language)}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-12 text-center text-gray-500">
-          <p>Dashboard content will be expanded in Phase 4</p>
-        </div>
-      </main>
-
-      <Footer />
-    </div>
+    <DashboardClient
+      firstName={firstName}
+      language={language}
+      enrolledCourses={enrolledCourses}
+      availableCourses={availableCourses}
+    />
   );
 }

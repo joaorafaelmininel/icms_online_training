@@ -3,14 +3,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-
-<Link
-  href="/auth?tab=signin&redirectTo=/dashboard"
-  className="rounded-md bg-[#0B4A7C] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#083457]"
->
-  Sign In
-</Link>;
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import LanguageSwitcher from "./LanguageSwitcher";
 import TrainingsDropdown from "./TrainingsDropdown";
 import { getCurrentLanguage } from "@/lib/i18n/language";
@@ -18,7 +11,7 @@ import { auth } from "@/lib/i18n/translations";
 import { t } from "@/lib/i18n/language";
 
 export default async function Header() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
   // Get preferred language
@@ -95,7 +88,7 @@ async function UserMenuButton({
   userId: string; 
   language: 'en' | 'es';
 }) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createClient();
   const { data: profile } = await supabase
     .from('profiles')
     .select('username, first_name')

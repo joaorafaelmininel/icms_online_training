@@ -27,27 +27,290 @@ export const common = {
 };
 
 // ==========================================
-// AUTH
+// AUTH - EXPANDIDO
 // ==========================================
 
 export const auth = {
-  signIn: { en: 'Sign In', es: 'Iniciar Sesión' } as BilingualText,
-  signUp: { en: 'Sign Up', es: 'Registrarse' } as BilingualText,
-  signInSignUp: { en: 'Sign In | Sign Up', es: 'Iniciar Sesión | Registrarse' } as BilingualText,
-  logout: { en: 'Logout', es: 'Cerrar Sesión' } as BilingualText,
-  email: { en: 'Email', es: 'Correo Electrónico' } as BilingualText,
-  password: { en: 'Password', es: 'Contraseña' } as BilingualText,
-  confirmPassword: { en: 'Confirm Password', es: 'Confirmar Contraseña' } as BilingualText,
-  forgotPassword: { en: 'Forgot your password?', es: '¿Olvidaste tu contraseña?' } as BilingualText,
-  resetPassword: { en: 'Reset Password', es: 'Restablecer Contraseña' } as BilingualText,
-  createAccount: { en: 'Create account', es: 'Crear cuenta' } as BilingualText,
-  welcomeBack: { en: 'Welcome back!', es: '¡Bienvenido de nuevo!' } as BilingualText,
-  welcomeMessage: { en: 'Please enter your credentials', es: 'Por favor ingresa tus credenciales' } as BilingualText,
-  joinPlatform: { en: 'Join the Online INSARAG Training Platform', es: 'Únete a la Plataforma de Capacitación en Línea de INSARAG' } as BilingualText,
-  backToHome: { en: 'Back to home', es: 'Volver al inicio' } as BilingualText,
-  termsAgree: { en: 'I accept the Terms of Use', es: 'Acepto los Términos de Uso' } as BilingualText,
-  signingIn: { en: 'Signing in...', es: 'Iniciando sesión...' } as BilingualText,
-  creatingAccount: { en: 'Creating account...', es: 'Creando cuenta...' } as BilingualText,
+  // Page titles
+  pageTitle: { 
+    en: "INSARAG Online Training Platform", 
+    es: "Plataforma de Capacitación en Línea de INSARAG" 
+  } as BilingualText,
+  welcomeBack: { 
+    en: "Welcome back!", 
+    es: "¡Bienvenido de nuevo!" 
+  } as BilingualText,
+  createAccount: { 
+    en: "Create your account", 
+    es: "Crea tu cuenta" 
+  } as BilingualText,
+
+  // Tabs
+  signIn: { 
+    en: "Sign In", 
+    es: "Iniciar Sesión" 
+  } as BilingualText,
+  signUp: { 
+    en: "Sign Up", 
+    es: "Registrarse" 
+  } as BilingualText,
+  signInSignUp: { 
+    en: 'Sign In | Sign Up', 
+    es: 'Iniciar Sesión | Registrarse' 
+  } as BilingualText,
+  logout: { 
+    en: 'Logout', 
+    es: 'Cerrar Sesión' 
+  } as BilingualText,
+
+  // Sign In Form
+  email: { 
+    en: "Email", 
+    es: "Correo Electrónico" 
+  } as BilingualText,
+  emailPlaceholder: { 
+    en: "your.email@example.com", 
+    es: "tu.correo@ejemplo.com" 
+  } as BilingualText,
+  password: { 
+    en: "Password", 
+    es: "Contraseña" 
+  } as BilingualText,
+  passwordPlaceholder: { 
+    en: "Min 6 characters", 
+    es: "Mín. 6 caracteres" 
+  } as BilingualText,
+  confirmPassword: { 
+    en: 'Confirm Password', 
+    es: 'Confirmar Contraseña' 
+  } as BilingualText,
+  forgotPassword: { 
+    en: "Forgot your password?", 
+    es: "¿Olvidaste tu contraseña?" 
+  } as BilingualText,
+  resetPassword: { 
+    en: 'Reset Password', 
+    es: 'Restablecer Contraseña' 
+  } as BilingualText,
+  signInButton: { 
+    en: "Sign In", 
+    es: "Iniciar Sesión" 
+  } as BilingualText,
+  signingIn: { 
+    en: "Signing in...", 
+    es: "Iniciando sesión..." 
+  } as BilingualText,
+  backToMain: { 
+    en: "← Back to main page", 
+    es: "← Volver a la página principal" 
+  } as BilingualText,
+  welcomeMessage: { 
+    en: 'Please enter your credentials', 
+    es: 'Por favor ingresa tus credenciales' 
+  } as BilingualText,
+  joinPlatform: { 
+    en: 'Join the Online INSARAG Training Platform', 
+    es: 'Únete a la Plataforma de Capacitación en Línea de INSARAG' 
+  } as BilingualText,
+  backToHome: { 
+    en: 'Back to home', 
+    es: 'Volver al inicio' 
+  } as BilingualText,
+  termsAgree: { 
+    en: 'I accept the Terms of Use', 
+    es: 'Acepto los Términos de Uso' 
+  } as BilingualText,
+  creatingAccount: { 
+    en: 'Creating account...', 
+    es: 'Creando cuenta...' 
+  } as BilingualText,
+
+  // Sign Up Form - Section Headers
+  personalInfo: { 
+    en: "Personal Information", 
+    es: "Información Personal" 
+  } as BilingualText,
+  professionalInfo: { 
+    en: "Professional Information", 
+    es: "Información Profesional" 
+  } as BilingualText,
+  professionalInfoOptional: { 
+    en: "(optional)", 
+    es: "(opcional)" 
+  } as BilingualText,
+  accountInfo: { 
+    en: "Account Information", 
+    es: "Información de la Cuenta" 
+  } as BilingualText,
+
+  // Personal Information Fields
+  title: { 
+    en: "Title", 
+    es: "Título" 
+  } as BilingualText,
+  titleMr: { 
+    en: "Mr.", 
+    es: "Sr." 
+  } as BilingualText,
+  titleMrs: { 
+    en: "Mrs.", 
+    es: "Sra." 
+  } as BilingualText,
+  titleMs: { 
+    en: "Ms.", 
+    es: "Srta." 
+  } as BilingualText,
+  firstName: { 
+    en: "First Name", 
+    es: "Nombre" 
+  } as BilingualText,
+  middleName: { 
+    en: "Middle Name", 
+    es: "Segundo Nombre" 
+  } as BilingualText,
+  lastName: { 
+    en: "Last Name", 
+    es: "Apellido" 
+  } as BilingualText,
+  username: { 
+    en: "Username", 
+    es: "Nombre de Usuario" 
+  } as BilingualText,
+  usernamePlaceholder: { 
+    en: "lowercase, numbers, underscore", 
+    es: "minúsculas, números, guión bajo" 
+  } as BilingualText,
+  usernameChecking: { 
+    en: "⏳ Checking...", 
+    es: "⏳ Verificando..." 
+  } as BilingualText,
+  usernameAvailable: { 
+    en: "✓ Available", 
+    es: "✓ Disponible" 
+  } as BilingualText,
+  usernameUnavailable: { 
+    en: "✗ Not available", 
+    es: "✗ No disponible" 
+  } as BilingualText,
+  country: { 
+    en: "Country", 
+    es: "País" 
+  } as BilingualText,
+
+  // Professional Information Fields
+  organization: { 
+    en: "Organization", 
+    es: "Organización" 
+  } as BilingualText,
+  organizationCountry: { 
+    en: "Organization Country", 
+    es: "País de la Organización" 
+  } as BilingualText,
+  jobTitle: { 
+    en: "Job Title", 
+    es: "Título del Trabajo" 
+  } as BilingualText,
+  usarTeamRole: { 
+    en: "USAR Team/Role", 
+    es: "Equipo/Rol USAR" 
+  } as BilingualText,
+  usarTeamRolePlaceholder: { 
+    en: "e.g., BRA-10", 
+    es: "ej: BRA-10" 
+  } as BilingualText,
+  teamType: { 
+    en: "Team Type", 
+    es: "Tipo de Equipo" 
+  } as BilingualText,
+  selectType: { 
+    en: "Select type", 
+    es: "Seleccionar tipo" 
+  } as BilingualText,
+  teamTypes: {
+    assessment: { en: "Assessment", es: "Evaluación" } as BilingualText,
+    coordination: { en: "Coordination", es: "Coordinación" } as BilingualText,
+    emt: { en: "EMT", es: "EMT" } as BilingualText,
+    environmental: { en: "Environmental", es: "Ambiental" } as BilingualText,
+    firefighting: { en: "Firefighting", es: "Extinción de Incendios" } as BilingualText,
+    flood: { en: "Flood", es: "Inundaciones" } as BilingualText,
+    logistics: { en: "Logistics", es: "Logística" } as BilingualText,
+    shelter: { en: "Shelter", es: "Refugio" } as BilingualText,
+    telecom: { en: "Telecom", es: "Telecomunicaciones" } as BilingualText,
+    usar: { en: "USAR", es: "USAR" } as BilingualText,
+    wash: { en: "WASH", es: "WASH" } as BilingualText,
+  },
+  yearsExperience: { 
+    en: "Years of Experience", 
+    es: "Años de Experiencia" 
+  } as BilingualText,
+  yearsExperiencePlaceholder: { 
+    en: "0-99", 
+    es: "0-99" 
+  } as BilingualText,
+
+  // Account Information Fields
+  preferredLanguage: { 
+    en: "Preferred Language", 
+    es: "Idioma Preferido" 
+  } as BilingualText,
+  languageEnglish: { 
+    en: "English", 
+    es: "Inglés" 
+  } as BilingualText,
+  languageSpanish: { 
+    en: "Spanish", 
+    es: "Español" 
+  } as BilingualText,
+  termsAccept: { 
+    en: "I accept the", 
+    es: "Acepto los" 
+  } as BilingualText,
+  termsOfUse: { 
+    en: "Terms of Use", 
+    es: "Términos de Uso" 
+  } as BilingualText,
+
+  // Buttons
+  signUpButton: { 
+    en: "Sign Up", 
+    es: "Registrarse" 
+  } as BilingualText,
+
+  // Messages
+  invalidCredentials: { 
+    en: "Invalid email or password.", 
+    es: "Correo o contraseña inválidos." 
+  } as BilingualText,
+  usernameNotAvailable: { 
+    en: "Username is not available.", 
+    es: "El nombre de usuario no está disponible." 
+  } as BilingualText,
+  mustAcceptTerms: { 
+    en: "You must accept the Terms of Use.", 
+    es: "Debes aceptar los Términos de Uso." 
+  } as BilingualText,
+  accountCreated: { 
+    en: "Account created successfully! Please check your email to verify your account.", 
+    es: "¡Cuenta creada exitosamente! Por favor revisa tu correo para verificar tu cuenta." 
+  } as BilingualText,
+  accountCreationFailed: { 
+    en: "Failed to create account. Please try again.", 
+    es: "Error al crear la cuenta. Por favor, inténtalo de nuevo." 
+  } as BilingualText,
+
+  // Footer
+  footerText: { 
+    en: "By continuing, you agree to our", 
+    es: "Al continuar, aceptas nuestros" 
+  } as BilingualText,
+  and: { 
+    en: "and", 
+    es: "y" 
+  } as BilingualText,
+  privacyPolicy: { 
+    en: "Privacy Policy", 
+    es: "Política de Privacidad" 
+  } as BilingualText,
 };
 
 // ==========================================
@@ -112,8 +375,8 @@ export const landing = {
     es: '8 horas de capacitación integral' 
   } as BilingualText,
   formatValue: { 
-    en: '11 modules • Self-paced online', 
-    es: '11 módulos • En línea a tu propio ritmo' 
+    en: '10 modules • Self-paced online', 
+    es: '10 módulos • En línea a tu propio ritmo' 
   } as BilingualText,
   languageValue: { 
     en: 'Available in English and Spanish', 
