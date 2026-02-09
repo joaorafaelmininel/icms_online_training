@@ -11,7 +11,7 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "ICMS 3.0 Platform | INSARAG",
+  title: "INSARAG | Online Training,
   description: "INSARAG Coordination and Management System 3.0 Online Training Platform",
 };
 
