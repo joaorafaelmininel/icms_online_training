@@ -12,7 +12,7 @@ export default function Footer() {
             alt="INSARAG"
             width={220}
             height={56}
-            className="h-[56px] w-auto"
+            className="h-[72px] w-auto"
             priority
           />
 

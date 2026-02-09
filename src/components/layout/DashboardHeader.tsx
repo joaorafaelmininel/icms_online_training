@@ -83,10 +83,10 @@ export default function DashboardHeader({
           <Image
             src="/insarag-logo-blue.svg"
             alt="INSARAG"
-            width={180}
-            height={45}
+            width={260}
+            height={65}
             priority
-            className="h-[52px] w-auto"
+            className="h-[72px] w-auto"
           />
         </Link>
 

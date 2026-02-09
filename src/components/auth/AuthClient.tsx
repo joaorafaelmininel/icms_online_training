@@ -345,14 +345,14 @@ export default function AuthClient({
       <div className="w-full max-w-md">
 
         {/* ── LOGO ───────────────────────────────────────────────────────── */}
-        <div className="mb-6 text-center">
+        <div className="mb-6 text-center flex flex-col items-center text-center">
           <Image
             src="/insarag-logo.svg"
             alt="INSARAG"
-            width={220}
-            height={55}
+            width={320}
+            height={80}
             priority
-            className="mx-auto h-14 w-auto"
+            className="mx-auto h-[96px] w-auto"
           />
           <p className="mt-3 text-sm font-medium text-blue-200">{t.platformTitle}</p>
 

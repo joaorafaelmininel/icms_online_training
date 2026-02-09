@@ -24,12 +24,12 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="1.1065421"
-     inkscape:cx="800.69257"
-     inkscape:cy="177.58024"
+     inkscape:cx="776.2922"
+     inkscape:cy="178.48395"
      inkscape:window-width="1920"
-     inkscape:window-height="1009"
+     inkscape:window-height="1129"
      inkscape:window-x="-8"
-     inkscape:window-y="50"
+     inkscape:window-y="-8"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg6" />
   <defs
@@ -103,7 +103,7 @@
     </clipPath>
   </defs>
   <g
-     transform="scale(0.747893)"
+     transform="matrix(0.97467205,0,0,0.96936712,13.037162,5.4222971)"
      id="g4"
      mask="url(#mask6)"
      clip-path="url(#clipPath10)">
