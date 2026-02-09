@@ -6,16 +6,16 @@ import QuizClient from '@/components/modules/QuizClient';
 import type { QuizClientQuestion } from '@/lib/types/quiz';
 
 interface Props {
-  params: Promise<{ slug: string; number: string }>;
+  params: { slug: string; number: string };
 }
 
 export async function generateMetadata({ params }: Props) {
-  const { slug, number } = await params;
+  const { slug, number } = params;
   return { title: `Module ${number} Quiz — ICMS Learning Platform` };
 }
 
 export default async function QuizPage({ params }: Props) {
-  const { slug, number } = await params;
+  const { slug, number } = params;
   const moduleNumber = parseInt(number);
   const supabase = await createClient();
   const language = (await getCurrentLanguage()) as 'en' | 'es';
@@ -27,20 +27,22 @@ export default async function QuizPage({ params }: Props) {
   if (!user) redirect(`/auth?redirectTo=/courses/${slug}/modules/${number}/quiz`);
 
   // Course
-  const { data: course } = await supabase
+  const { data: courseData } = await supabase
     .from('courses')
     .select('id, slug, title')
     .eq('slug', slug)
     .single();
+  const course = courseData as any;
   if (!course) notFound();
 
   // Module
-  const { data: mod } = await supabase
+  const { data: modData } = await supabase
     .from('course_modules')
     .select('id, course_id, module_number, title, has_quiz, quiz_required, quiz_passing_score, quiz_max_attempts, total_slides')
     .eq('course_id', course.id)
     .eq('module_number', moduleNumber)
     .single();
+  const mod = modData as any;
   if (!mod || !mod.has_quiz) notFound();
 
   // Enrollment
