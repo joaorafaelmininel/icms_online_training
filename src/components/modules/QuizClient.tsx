@@ -34,6 +34,9 @@ const i18n: Record<Lang, Record<string, string>> = {
     submitQuiz: 'Submit Quiz',
     submitting: 'Submitting...',
     confirmSubmit: 'Are you sure? You cannot change your answers after submitting.',
+    confirmTitle: 'Submit Quiz',
+    confirmYes: 'Yes, Submit',
+    confirmCancel: 'Cancel',
     unanswered: '{n} question(s) unanswered',
     // Results
     congratulations: 'Congratulations!',
@@ -80,6 +83,9 @@ const i18n: Record<Lang, Record<string, string>> = {
     submitQuiz: 'Enviar Quiz',
     submitting: 'Enviando...',
     confirmSubmit: '¿Estás seguro? No podrás cambiar tus respuestas después de enviar.',
+    confirmTitle: 'Enviar Quiz',
+    confirmYes: 'Sí, Enviar',
+    confirmCancel: 'Cancelar',
     unanswered: '{n} pregunta(s) sin responder',
     congratulations: '¡Felicidades!',
     quizPassed: '¡Aprobaste el quiz!',
@@ -164,6 +170,8 @@ export default function QuizClient({
   const [error, setError] = useState<string | null>(null);
   const [startTime] = useState(Date.now());
   const [canRetake, setCanRetake] = useState(canAttempt);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState('');
   const topRef = useRef<HTMLDivElement>(null);
 
   const total = questions.length;
@@ -185,11 +193,15 @@ export default function QuizClient({
     const unanswered = total - answeredCount;
     if (unanswered > 0) {
       const msg = t.unanswered.replace('{n}', String(unanswered));
-      if (!confirm(`${msg}\n\n${t.confirmSubmit}`)) return;
+      setConfirmMessage(`${msg}\n\n${t.confirmSubmit}`);
     } else {
-      if (!confirm(t.confirmSubmit)) return;
+      setConfirmMessage(t.confirmSubmit);
     }
+    setShowConfirm(true);
+  };
 
+  const handleConfirmedSubmit = () => {
+    setShowConfirm(false);
     setError(null);
     startTransition(async () => {
       const elapsed = Math.round((Date.now() - startTime) / 1000);
@@ -226,6 +238,48 @@ export default function QuizClient({
   // ═════════════════════════════════════════════════════════════════════════════
   return (
     <div className="min-h-[100dvh] bg-gray-50" ref={topRef}>
+      {/* ── CONFIRM MODAL ────────────────────────────────────────────── */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+            {/* Header */}
+            <div className="bg-[#0B4A7C] px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-white">{t.confirmTitle}</h3>
+              </div>
+            </div>
+            {/* Body */}
+            <div className="px-6 py-5">
+              {confirmMessage.split('\n\n').map((line, i) => (
+                <p key={i} className={`text-sm leading-relaxed ${i === 0 && confirmMessage.includes('\n\n') ? 'mb-3 font-semibold text-amber-600' : 'text-gray-600'}`}>
+                  {line}
+                </p>
+              ))}
+            </div>
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                {t.confirmCancel}
+              </button>
+              <button
+                onClick={handleConfirmedSubmit}
+                className="rounded-lg bg-[#0B4A7C] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#083457]"
+              >
+                {t.confirmYes}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── TOP BAR ──────────────────────────────────────────────────── */}
       <header className="border-b border-gray-200 bg-white px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
