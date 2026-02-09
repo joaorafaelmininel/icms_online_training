@@ -19,7 +19,7 @@ interface AuthClientProps {
 // ═══════════════════════════════════════════════════════════════════════════════
 const i18n: Record<Lang, Record<string, string>> = {
   en: {
-    platformTitle: 'INSARAG Online Training Platform',
+    platformTitle: 'ICMS 3.0 Online Training Platform',
     signIn: 'Sign In',
     signUp: 'Sign Up',
     welcomeBack: 'Welcome back!',
@@ -70,7 +70,7 @@ const i18n: Record<Lang, Record<string, string>> = {
     errTerms: 'You must accept the Terms of Use',
   },
   es: {
-    platformTitle: 'Plataforma de Capacitación de INSARAG',
+    platformTitle: 'Plataforma de Capacitación ICMS 3.0',
     signIn: 'Iniciar Sesión',
     signUp: 'Registrarse',
     welcomeBack: '¡Bienvenido de nuevo!',
@@ -449,9 +449,9 @@ export default function AuthClient({
                 <div className="col-span-3">
                   <label className="mb-1 block text-xs font-medium text-gray-700">{t.titleLabel} *</label>
                   <select value={signUpData.title} onChange={(e) => set('title', e.target.value)} disabled={isPending} className={inputCls}>
-                    <option value="mr">Mr.</option>
-                    <option value="mrs">Mrs.</option>
-                    <option value="ms">Ms.</option>
+                    <option value="mr">{lang === 'es' ? 'Sr.' : 'Mr.'}</option>
+                    <option value="mrs">{lang === 'es' ? 'Sra.' : 'Mrs.'}</option>
+                    <option value="ms">{lang === 'es' ? 'Srta.' : 'Ms.'}</option>
                   </select>
                 </div>
                 <div className="col-span-4">
