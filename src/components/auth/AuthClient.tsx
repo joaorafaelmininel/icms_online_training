@@ -19,7 +19,7 @@ interface AuthClientProps {
 // ═══════════════════════════════════════════════════════════════════════════════
 const i18n: Record<Lang, Record<string, string>> = {
   en: {
-    platformTitle: 'ICMS 3.0 Online Training Platform',
+    platformTitle: 'INSARAG Online Training Platform',
     signIn: 'Sign In',
     signUp: 'Sign Up',
     welcomeBack: 'Welcome back!',
@@ -70,7 +70,7 @@ const i18n: Record<Lang, Record<string, string>> = {
     errTerms: 'You must accept the Terms of Use',
   },
   es: {
-    platformTitle: 'Plataforma de Capacitación ICMS 3.0',
+    platformTitle: 'Plataforma de Capacitación INSARAG',
     signIn: 'Iniciar Sesión',
     signUp: 'Registrarse',
     welcomeBack: '¡Bienvenido de nuevo!',
