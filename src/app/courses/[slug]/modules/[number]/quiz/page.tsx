@@ -9,6 +9,8 @@ interface Props {
   params: { slug: string; number: string };
 }
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({ params }: Props) {
   const { slug, number } = params;
   return { title: `Module ${number} Quiz — ICMS Learning Platform` };

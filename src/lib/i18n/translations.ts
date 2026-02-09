@@ -323,8 +323,8 @@ export const landing = {
     es: 'Plataforma de Capacitación en Línea INSARAG' 
   } as BilingualText,
   heroSubtitle: { 
-    en: 'ICMS 3.0 Online Training Platform', 
-    es: 'Plataforma de Capacitación en Línea ICMS 3.0' 
+    en: 'INSARAG Online Training Platform', 
+    es: 'Plataforma de Capacitación en Línea INSARAG' 
   } as BilingualText,
   heroCta: { 
     en: 'Access your training', 
