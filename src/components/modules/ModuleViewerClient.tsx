@@ -366,14 +366,14 @@ export default function ModuleViewerClient({
               {/* ── Completion CTA (on last slide when all viewed) ────────────── */}
               {allViewed && current === total && (
                 <div className={`mt-10 rounded-xl border-2 border-dashed p-6 text-center sm:p-8 ${
-                  isLastModule && quizPassed
+                  isLastModule && (quizPassed || !mod.has_quiz)
                     ? 'border-[#0B4A7C]/30 bg-[#0B4A7C]/5'
                     : 'border-green-200 bg-green-50/60'
                 }`}>
                   <div className={`mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full ${
-                    isLastModule && quizPassed ? 'bg-[#0B4A7C]/10' : 'bg-green-100'
+                    isLastModule && (quizPassed || !mod.has_quiz) ? 'bg-[#0B4A7C]/10' : 'bg-green-100'
                   }`}>
-                    {isLastModule && quizPassed ? (
+                    {isLastModule && (quizPassed || !mod.has_quiz) ? (
                       <svg className="h-6 w-6 text-[#0B4A7C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                       </svg>
@@ -384,15 +384,15 @@ export default function ModuleViewerClient({
 
                   {/* Title & description */}
                   <h3 className={`text-lg font-bold ${
-                    isLastModule && quizPassed ? 'text-[#0B4A7C]' : 'text-green-800'
+                    isLastModule && (quizPassed || !mod.has_quiz) ? 'text-[#0B4A7C]' : 'text-green-800'
                   }`}>
-                    {isLastModule && quizPassed ? t.courseComplete : t.allViewed}
+                    {isLastModule && (quizPassed || !mod.has_quiz) ? t.courseComplete : t.allViewed}
                   </h3>
                   <p className={`mx-auto mt-1 max-w-md text-sm ${
-                    isLastModule && quizPassed ? 'text-[#0B4A7C]/70' : 'text-green-600'
+                    isLastModule && (quizPassed || !mod.has_quiz) ? 'text-[#0B4A7C]/70' : 'text-green-600'
                   }`}>
                     {isLastModule
-                      ? (quizPassed ? t.courseCompleteQuizDone : t.courseCompleteDesc)
+                      ? ((quizPassed || !mod.has_quiz) ? t.courseCompleteQuizDone : t.courseCompleteDesc)
                       : (mod.has_quiz ? t.quizReady : t.noQuizDone)
                     }
                   </p>
@@ -410,8 +410,8 @@ export default function ModuleViewerClient({
                       </a>
                     )}
 
-                    {/* Go to Final Exam — last module + quiz passed */}
-                    {isLastModule && quizPassed && (
+                    {/* Go to Final Exam — last module + quiz passed (or no quiz) */}
+                    {isLastModule && (quizPassed || !mod.has_quiz) && (
                       <a
                         href={`/courses/${course.slug}/final-exam`}
                         className="flex items-center gap-2 rounded-lg bg-[#0B4A7C] px-7 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#083457]"
