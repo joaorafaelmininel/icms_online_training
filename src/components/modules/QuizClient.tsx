@@ -38,7 +38,6 @@ const i18n: Record<Lang, Record<string, string>> = {
     confirmYes: 'Yes, Submit',
     confirmCancel: 'Cancel',
     unanswered: '{n} question(s) unanswered',
-    // Results
     congratulations: 'Congratulations!',
     quizPassed: 'You passed the quiz!',
     quizFailed: 'Not quite there yet',
@@ -168,11 +167,16 @@ export default function QuizClient({
   const [result, setResult] = useState<QuizResult | null>(null);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [startTime] = useState(Date.now());
   const [canRetake, setCanRetake] = useState(canAttempt);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState('');
   const topRef = useRef<HTMLDivElement>(null);
+
+  // ✅ FIX: useRef instead of useState(Date.now()) to avoid hydration mismatch
+  const startTimeRef = useRef<number>(0);
+  useEffect(() => {
+    startTimeRef.current = Date.now();
+  }, []);
 
   const total = questions.length;
   const answeredCount = Object.keys(answers).length;
@@ -204,7 +208,8 @@ export default function QuizClient({
     setShowConfirm(false);
     setError(null);
     startTransition(async () => {
-      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      // ✅ FIX: use startTimeRef.current instead of startTime
+      const elapsed = Math.round((Date.now() - startTimeRef.current) / 1000);
       const res = await submitQuiz({
         moduleId: mod.id,
         courseId: course.id,
@@ -242,7 +247,6 @@ export default function QuizClient({
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
-            {/* Header */}
             <div className="bg-[#0B4A7C] px-6 py-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
@@ -253,7 +257,6 @@ export default function QuizClient({
                 <h3 className="text-lg font-bold text-white">{t.confirmTitle}</h3>
               </div>
             </div>
-            {/* Body */}
             <div className="px-6 py-5">
               {confirmMessage.split('\n\n').map((line, i) => (
                 <p key={i} className={`text-sm leading-relaxed ${i === 0 && confirmMessage.includes('\n\n') ? 'mb-3 font-semibold text-amber-600' : 'text-gray-600'}`}>
@@ -261,7 +264,6 @@ export default function QuizClient({
                 </p>
               ))}
             </div>
-            {/* Actions */}
             <div className="flex items-center justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4">
               <button
                 onClick={() => setShowConfirm(false)}
@@ -309,7 +311,6 @@ export default function QuizClient({
         {/* ════════════════════════════════════════════════════════════ */}
         {phase === 'intro' && (
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-            {/* Icon */}
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0B4A7C]/10">
               <svg className="h-8 w-8 text-[#0B4A7C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -340,6 +341,15 @@ export default function QuizClient({
               </div>
             )}
 
+            {/* No questions warning */}
+            {total === 0 && (
+              <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-center">
+                <p className="text-sm font-medium text-amber-700">
+                  No questions available for this quiz yet. Please check back later.
+                </p>
+              </div>
+            )}
+
             {/* Instructions card */}
             <div className="mb-6 rounded-lg bg-gray-50 p-5">
               <h2 className="mb-3 text-sm font-bold text-gray-700">{t.instructions}</h2>
@@ -347,15 +357,21 @@ export default function QuizClient({
                 <p>{t.instructionsText.replace('{score}', String(mod.passingScore))}</p>
                 <div className="flex flex-wrap gap-3 pt-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-600 shadow-sm">
-                    <svg className="h-3.5 w-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <svg className="h-3.5 w-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     {t.questionsCount.replace('{n}', String(total))}
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-600 shadow-sm">
-                    <svg className="h-3.5 w-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    <svg className="h-3.5 w-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
                     {t.passingScore.replace('{score}', String(mod.passingScore))}
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-600 shadow-sm">
-                    <svg className="h-3.5 w-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    <svg className="h-3.5 w-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                     {attemptsRemaining !== null
                       ? (attemptsRemaining > 0
                           ? t.attemptsRemaining.replace('{n}', String(attemptsRemaining))
@@ -384,9 +400,7 @@ export default function QuizClient({
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-bold text-gray-700">{a.score}%</span>
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                          a.passed
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-600'
+                          a.passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
                         }`}>
                           {a.passed ? t.passed : t.failed}
                         </span>
@@ -399,7 +413,7 @@ export default function QuizClient({
 
             {/* Actions */}
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-              {canAttempt && (
+              {canAttempt && total > 0 && (
                 <button
                   onClick={() => { setPhase('quiz'); setAnswers({}); setCurrentQ(0); }}
                   className="rounded-lg bg-[#FF6B35] px-8 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#E55A2B]"
@@ -486,9 +500,7 @@ export default function QuizClient({
                       }`}
                     >
                       <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition ${
-                        isSelected
-                          ? 'bg-[#0B4A7C] text-white'
-                          : 'bg-gray-100 text-gray-500'
+                        isSelected ? 'bg-[#0B4A7C] text-white' : 'bg-gray-100 text-gray-500'
                       }`}>
                         {opt.id.toUpperCase()}
                       </span>
@@ -568,7 +580,6 @@ export default function QuizClient({
                 : 'border-red-200 bg-gradient-to-br from-red-50 to-orange-50'
             }`}>
               <div className="p-6 text-center sm:p-8">
-                {/* Icon */}
                 <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${
                   result.passed ? 'bg-green-100' : 'bg-red-100'
                 }`}>
@@ -593,8 +604,7 @@ export default function QuizClient({
                 }`}>
                   {result.passed
                     ? (isLastModule ? t.courseCompleteQuiz : t.quizPassed)
-                    : t.tryAgain
-                  }
+                    : t.tryAgain}
                 </p>
 
                 {/* Score circle */}
@@ -692,7 +702,6 @@ function QuestionResultCard({
     <div className={`overflow-hidden rounded-xl border ${
       qr.isCorrect ? 'border-green-200' : 'border-red-200'
     }`}>
-      {/* Header */}
       <div className={`flex items-center gap-3 px-5 py-3 ${
         qr.isCorrect ? 'bg-green-50' : 'bg-red-50'
       }`}>
@@ -710,13 +719,11 @@ function QuestionResultCard({
         </span>
       </div>
 
-      {/* Body */}
       <div className="bg-white p-5">
         <p className="mb-4 text-sm font-bold text-gray-900">
           {loc(question.question_text, language)}
         </p>
 
-        {/* Options with correct/incorrect indicators */}
         <div className="space-y-2">
           {question.options.map((opt) => {
             const isSelected = qr.selectedAnswer === opt.id;
@@ -758,7 +765,6 @@ function QuestionResultCard({
           })}
         </div>
 
-        {/* Explanation */}
         {qr.explanation && (
           <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-3">
             <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-blue-500">
