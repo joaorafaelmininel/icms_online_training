@@ -33,10 +33,22 @@ const trainings: Training[] = [
       en: 'Coordination and Management System',
       es: 'Sistema de Coordinación y Gestión',
     },
-    href: '/courses/icms-3-0',
+    href: '/courses/icms-30-online-training',
     available: true,
   },
-  // Adicione mais treinamentos aqui no futuro
+  {
+    id: 'usar-coordination',
+    title: {
+      en: 'USAR Coordination Operator',
+      es: 'Operador de Coordinación USAR',
+    },
+    description: {
+      en: 'RDC & UCC Functions',
+      es: 'Funciones RDC y UCC',
+    },
+    href: '/courses/usar-coordination-course',
+    available: true,
+  },
 ];
 
 export default function TrainingsDropdown({ language }: TrainingsDropdownProps) {
