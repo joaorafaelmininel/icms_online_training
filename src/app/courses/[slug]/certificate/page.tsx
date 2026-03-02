@@ -7,10 +7,6 @@ import type { Profile, Course } from '@/lib/types/database'
 
 type Lang = 'en' | 'es'
 
-/**
- * Tipagem LOCAL do enrollment exatamente como vem do SELECT abaixo.
- * Não depende do CourseEnrollment global (que está divergente do schema real).
- */
 type EnrollmentRow = {
   id: string
   final_exam_passed: boolean
@@ -28,41 +24,27 @@ export default async function CertificatePage({
   const { slug } = params
   const supabase = createClient()
 
-  // -----------------------------
   // AUTH
-  // -----------------------------
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     redirect(`/auth?tab=signin&redirectTo=/courses/${encodeURIComponent(slug)}/certificate`)
   }
 
-  // -----------------------------
-  // COURSE (tipado)
-  // -----------------------------
+  // COURSE
   const { data: course } = await supabase
     .from('courses')
     .select('id, slug, title')
     .eq('slug', slug)
     .single<Pick<Course, 'id' | 'slug' | 'title'>>()
 
-  if (!course) {
-    redirect('/courses')
-  }
+  if (!course) redirect('/courses')
 
-  // (segurança extra) course.id pode ser number em alguns schemas
   const courseId = String((course as any).id)
 
-  // -----------------------------
-  // ENROLLMENT (tipagem local)
-  // -----------------------------
+  // ENROLLMENT
   const { data: enrollment } = await supabase
     .from('course_enrollments')
-    .select(
-      'id, final_exam_passed, final_exam_best_score, certificate_issued, certificate_issued_at, completed_at'
-    )
+    .select('id, final_exam_passed, final_exam_best_score, certificate_issued, certificate_issued_at, completed_at')
     .eq('user_id', user.id)
     .eq('course_id', courseId)
     .single<EnrollmentRow>()
@@ -71,9 +53,7 @@ export default async function CertificatePage({
     redirect(`/courses/${encodeURIComponent(slug)}`)
   }
 
-  // -----------------------------
-  // PROFILE (tipado)
-  // -----------------------------
+  // PROFILE — use auth metadata as fallback if profile query fails
   const { data: profile } = await supabase
     .from('profiles')
     .select('first_name, last_name, email, preferred_language')
@@ -82,8 +62,13 @@ export default async function CertificatePage({
 
   const language: Lang = profile?.preferred_language || 'en'
 
+  // Build full name — try profile first, then auth metadata, then email prefix
+  const firstName = profile?.first_name || (user.user_metadata?.first_name as string) || ''
+  const lastName = profile?.last_name || (user.user_metadata?.last_name as string) || ''
   const fullName =
-    [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') ||
+    [firstName, lastName].filter(Boolean).join(' ') ||
+    (user.user_metadata?.full_name as string) ||
+    user.email?.split('@')[0] ||
     'Participant'
 
   const completionDate =
@@ -91,12 +76,11 @@ export default async function CertificatePage({
     enrollment.certificate_issued_at ||
     new Date().toISOString()
 
-  // Número determinístico baseado no enrollment id
   const certNumber = `ICMS-${String(enrollment.id).substring(0, 8).toUpperCase()}`
 
-  // -----------------------------
-  // RENDER
-  // -----------------------------
+  // Signature image — place the file at /public/signature-stampa.png
+  const signatureUrl = '/signature-stampa.png'
+
   return (
     <CertificateClient
       courseTitle={course.title}
@@ -106,6 +90,7 @@ export default async function CertificatePage({
       score={enrollment.final_exam_best_score ?? 0}
       certNumber={certNumber}
       language={language}
+      signatureUrl={signatureUrl}
     />
   )
 }

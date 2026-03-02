@@ -7,6 +7,12 @@ import Link from 'next/link';
 type Lang = 'en' | 'es';
 interface LocalizedText { en: string; es: string; }
 
+function loc(field: LocalizedText | string | null | undefined, lang: Lang): string {
+  if (!field) return ''
+  if (typeof field === 'string') return field
+  return field[lang] || field['en'] || ''
+}
+
 const i18n = {
   en: {
     pageTitle: 'Your Certificate',
@@ -14,7 +20,6 @@ const i18n = {
     download: 'Download PDF',
     backToCourse: 'Back to Course',
     printHint: 'You can also use Ctrl+P / Cmd+P to print directly.',
-    // Certificate text — matching official INSARAG template
     certAwarded: 'This Certificate is awarded to',
     certRecognition: 'in recognition of the successful completion of the Online Course on the',
     certCourseName: 'INSARAG Coordination and Management System (ICMS)',
@@ -51,7 +56,14 @@ interface Props {
   score: number;
   certNumber: string;
   language: Lang;
+  // Optional: real signature image URL (e.g. /signature-stampa.png)
+  signatureUrl?: string;
 }
+
+// ── Fixed A4 landscape dimensions at 96 dpi ──────────────────────────────────
+// A4 landscape = 297mm × 210mm = 1123px × 794px at 96dpi
+const CERT_W = 1123;
+const CERT_H = 794;
 
 export default function CertificateClient({
   courseTitle,
@@ -61,6 +73,7 @@ export default function CertificateClient({
   score,
   certNumber,
   language,
+  signatureUrl,
 }: Props) {
   const t = i18n[language];
   const certRef = useRef<HTMLDivElement>(null);
@@ -71,22 +84,24 @@ export default function CertificateClient({
     { year: 'numeric', month: 'long', day: 'numeric' }
   );
 
+  // ── PDF: capture cert div at fixed pixel size → A4 landscape ─────────────
   const handleDownload = useCallback(async () => {
     if (!certRef.current) return;
     setDownloading(true);
-
     try {
       const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
 
-      const el = certRef.current;
-      const canvas = await html2canvas(el, {
+      // Capture at exactly CERT_W × CERT_H with scale=2 for retina quality
+      const canvas = await html2canvas(certRef.current, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#FFFFFF',
-        width: el.scrollWidth,
-        height: el.scrollHeight,
+        width: CERT_W,
+        height: CERT_H,
+        windowWidth: CERT_W,
+        windowHeight: CERT_H,
       });
 
       const pdf = new jsPDF({
@@ -95,11 +110,16 @@ export default function CertificateClient({
         format: 'a4',
       });
 
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgData = canvas.toDataURL('image/png');
+      const pageW = pdf.internal.pageSize.getWidth();   // 297
+      const pageH = pdf.internal.pageSize.getHeight();  // 210
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+      pdf.addImage(
+        canvas.toDataURL('image/png'),
+        'PNG',
+        0, 0,
+        pageW, pageH
+      );
+
       pdf.save(`ICMS-Certificate-${fullName.replace(/\s+/g, '-')}.pdf`);
     } catch (err) {
       console.error('PDF generation error:', err);
@@ -109,13 +129,13 @@ export default function CertificateClient({
     }
   }, [fullName]);
 
-  // ─── Light blue from the official template ────────────────────────────
   const borderBlue = '#7EC8E3';
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* ── Controls (hidden on print) ────────────────────────────────── */}
-      <div className="mx-auto max-w-4xl px-4 py-6 print:hidden sm:px-6">
+
+      {/* ── Controls (hidden on print) ───────────────────────────────────── */}
+      <div className="mx-auto max-w-5xl px-4 py-6 print:hidden sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">{t.pageTitle}</h1>
@@ -149,151 +169,138 @@ export default function CertificateClient({
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════
-          CERTIFICATE — Matching official INSARAG template
-      ══════════════════════════════════════════════════════════════════ */}
-      <div className="mx-auto max-w-5xl px-4 pb-12 print:max-w-none print:p-0 sm:px-6">
+      {/* ══════════════════════════════════════════════════════════════════════
+          CERTIFICATE — fixed 1123×794px (A4 landscape at 96dpi)
+          This guarantees html2canvas captures exactly what we see.
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="overflow-x-auto pb-12">
         <div
           ref={certRef}
           className="relative mx-auto overflow-hidden bg-white shadow-2xl print:shadow-none"
           style={{
-            aspectRatio: '297 / 210',
-            maxWidth: '920px',
+            width: `${CERT_W}px`,
+            height: `${CERT_H}px`,
+            fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
           }}
         >
-          {/* ── Decorative border frame (matching INSARAG style) ──────── */}
-          {/* Outer border */}
-          <div
-            className="absolute inset-[10px] rounded-[2px]"
-            style={{ border: `3px solid ${borderBlue}` }}
-          />
-          {/* Inner decorative dashed border */}
-          <div
-            className="absolute inset-[18px] rounded-[1px]"
-            style={{ border: `1.5px dashed ${borderBlue}` }}
-          />
-          {/* Second inner solid border */}
-          <div
-            className="absolute inset-[24px] rounded-[1px]"
-            style={{ border: `1px solid ${borderBlue}` }}
-          />
+          {/* ── Decorative border frame ─────────────────────────────────── */}
+          <div className="absolute" style={{ inset: '10px', border: `3px solid ${borderBlue}` }} />
+          <div className="absolute" style={{ inset: '18px', border: `1.5px dashed ${borderBlue}` }} />
+          <div className="absolute" style={{ inset: '24px', border: `1px solid ${borderBlue}` }} />
 
-          {/* ── Content ────────────────────────────────────────────────── */}
-          <div className="relative flex h-full flex-col px-16 py-10 sm:px-20 sm:py-12">
+          {/* ── Content ────────────────────────────────────────────────────── */}
+          <div
+            className="relative flex h-full flex-col"
+            style={{ padding: '48px 80px 44px 80px' }}
+          >
 
-            {/* ── TOP: INSARAG Logo (right-aligned, matching template) ── */}
-            <div className="flex justify-end">
+            {/* ── TOP: INSARAG Logo ───────────────────────────────────────── */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/insarag-logo-blue.svg"
                 alt="INSARAG"
-                className="h-16 w-auto sm:h-20"
+                style={{ height: '72px', width: 'auto' }}
                 crossOrigin="anonymous"
               />
             </div>
 
-            {/* ── MIDDLE: Certificate body ─────────────────────────────── */}
-            <div className="flex flex-1 flex-col items-center justify-center text-center" style={{ marginTop: '-8px' }}>
+            {/* ── MIDDLE: Certificate body ────────────────────────────────── */}
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                marginTop: '-8px',
+              }}
+            >
               {/* "This Certificate is awarded to" */}
-              <p
-                className="text-base text-gray-600 sm:text-lg"
-                style={{ fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif' }}
-              >
+              <p style={{ fontSize: '17px', color: '#4B5563', margin: 0 }}>
                 {t.certAwarded}
               </p>
 
-              {/* ── Recipient name ──────────────────────────────────────── */}
+              {/* Recipient name */}
               <h1
-                className="mt-4 text-4xl font-normal text-gray-900 sm:text-5xl"
-                style={{ fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                style={{
+                  fontSize: '52px',
+                  fontWeight: 400,
+                  color: '#111827',
+                  margin: '16px 0 0 0',
+                  lineHeight: 1.2,
+                  paddingBottom: '4px',
+                }}
               >
                 {fullName}
               </h1>
-              {/* Name underline */}
-              <div className="mt-2 h-[2px] w-[80%] max-w-md bg-gray-800" />
 
-              {/* ── Recognition text ────────────────────────────────────── */}
-              <p
-                className="mt-5 text-sm text-gray-600 sm:text-base"
-                style={{ fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif' }}
-              >
+              {/* Name underline */}
+              <div style={{ height: '2px', width: '60%', maxWidth: '440px', background: '#1F2937', marginTop: '12px' }} />
+
+              {/* Recognition text */}
+              <p style={{ fontSize: '15px', color: '#4B5563', margin: '20px 0 0 0' }}>
                 {t.certRecognition}
               </p>
-              <p
-                className="mt-1 text-base font-bold text-gray-900 sm:text-lg"
-                style={{ fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif' }}
-              >
-                {t.certCourseName}
+              <p style={{ fontSize: '17px', fontWeight: 700, color: '#111827', margin: '4px 0 0 0' }}>
+                {loc(courseTitle, language)}
               </p>
-              <p
-                className="mt-1 text-sm text-gray-600 sm:text-base"
-                style={{ fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif' }}
-              >
+              <p style={{ fontSize: '15px', color: '#4B5563', margin: '4px 0 0 0' }}>
                 {t.certConformity}
               </p>
 
-              {/* ── Date ────────────────────────────────────────────────── */}
-              <p
-                className="mt-5 text-sm text-gray-700 sm:text-base"
-                style={{ fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif' }}
-              >
+              {/* Date */}
+              <p style={{ fontSize: '15px', color: '#374151', margin: '20px 0 0 0' }}>
                 {formattedDate}
               </p>
-              <p
-                className="mt-0.5 text-sm text-gray-500"
-                style={{ fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif' }}
-              >
+              <p style={{ fontSize: '13px', color: '#6B7280', margin: '2px 0 0 0' }}>
                 {t.certOnline}
               </p>
             </div>
 
-            {/* ── BOTTOM: Signature block (right-aligned) ──────────────── */}
-            <div className="flex justify-end">
-              <div className="text-right">
-                {/* Signature placeholder (italic script) */}
-                <p
-                  className="mb-0 text-2xl text-gray-400"
-                  style={{
-                    fontFamily: '"Segoe Script", "Brush Script MT", "Dancing Script", cursive',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  S. Rhodes Stampa
-                </p>
+            {/* ── BOTTOM: Signature block ─────────────────────────────────── */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ textAlign: 'right' }}>
+
+                {/* Signature — image if available, otherwise cursive text */}
+                {signatureUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={signatureUrl}
+                    alt="Signature"
+                    crossOrigin="anonymous"
+                    style={{ height: '56px', width: 'auto', marginLeft: 'auto', display: 'block' }}
+                  />
+                ) : (
+                  <p
+                    style={{
+                      fontFamily: '"Segoe Script", "Brush Script MT", cursive',
+                      fontStyle: 'italic',
+                      fontSize: '26px',
+                      color: '#6B7280',
+                      margin: 0,
+                    }}
+                  >
+                    S. Rhodes Stampa
+                  </p>
+                )}
+
                 {/* Signature line */}
-                <div className="ml-auto mt-0 h-[1.5px] w-44 bg-gray-800" />
+                <div style={{ height: '1.5px', width: '200px', background: '#1F2937', marginLeft: 'auto', marginTop: '4px' }} />
+
                 {/* Name & role */}
-                <p
-                  className="mt-2 text-sm font-normal text-gray-700 sm:text-base"
-                  style={{ fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif' }}
-                >
-                  {t.certSignName}
-                </p>
-                <p
-                  className="text-xs text-gray-600 sm:text-sm"
-                  style={{ fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif' }}
-                >
-                  {t.certSignTitle}
-                </p>
-                <p
-                  className="text-xs text-gray-600 sm:text-sm"
-                  style={{ fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif' }}
-                >
-                  {t.certSignOrg}
-                </p>
-                <p
-                  className="text-xs text-gray-600 sm:text-sm"
-                  style={{ fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif' }}
-                >
-                  {t.certSignOrg2}
-                </p>
+                <p style={{ fontSize: '15px', color: '#374151', margin: '8px 0 0 0' }}>{t.certSignName}</p>
+                <p style={{ fontSize: '13px', color: '#4B5563', margin: '2px 0 0 0' }}>{t.certSignTitle}</p>
+                <p style={{ fontSize: '13px', color: '#4B5563', margin: '1px 0 0 0' }}>{t.certSignOrg}</p>
+                <p style={{ fontSize: '13px', color: '#4B5563', margin: '1px 0 0 0' }}>{t.certSignOrg2}</p>
               </div>
             </div>
+
           </div>
         </div>
       </div>
 
-      {/* ── Font + Print styles ─────────────────────────────────────────── */}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
         @media print {
