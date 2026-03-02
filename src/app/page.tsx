@@ -155,102 +155,119 @@ export default async function HomePage() {
         </div>
       </section>
 
+
       {/* ABOUT SECTION */}
-      <section id="about" className="mx-auto max-w-7xl px-6 py-20">
-        <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
-          {/* Left column - Course Info Box */}
-          <div className="lg:sticky lg:top-24 lg:self-start">
-            <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 shadow-xl">
-              <div className="bg-gradient-to-r from-[#0B4A7C] to-[#083457] px-6 py-4">
-                <h3 className="text-lg font-bold text-white">
-                  {language === "en" ? "ICMS 3.0 Online Training | Course Information" : "Entrenamiento en Línea ICMS 3.0 | Información del Curso"}
-                </h3>
-              </div>
+<section id="about" className="mx-auto max-w-7xl px-6 py-20">
+  <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
 
-              <div className="p-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-                    <span className="text-sm font-medium text-gray-600">
-                      {t(landing.duration, language)}
-                    </span>
-                    <span className="font-semibold text-gray-900">
-                      {t(landing.durationValue, language)}
-                    </span>
-                  </div>
+    {/* LEFT — Courses */}
+    <div className="space-y-5">
+      <h2 className="text-2xl font-extrabold text-gray-900">
+        {language === "en" ? "Available Courses" : "Cursos Disponibles"}
+      </h2>
 
-                  <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-                    <span className="text-sm font-medium text-gray-600">
-                      {t(landing.format, language)}
-                    </span>
-                    <span className="font-semibold text-gray-900">
-                      {t(landing.formatValue, language)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-                    <span className="text-sm font-medium text-gray-600">
-                      {t(landing.language, language)}
-                    </span>
-                    <span className="font-semibold text-gray-900">
-                      {t(landing.languageValue, language)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-600">
-                      {t(landing.certificate, language)}
-                    </span>
-                    <span className="font-semibold text-gray-900">
-                      {t(landing.certificateValue, language)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-6">
-                  <Link
-                    href="/auth?tab=signup&redirectTo=/dashboard"
-                    className="block w-full rounded-lg bg-[#0B4A7C] px-6 py-3 text-center font-semibold text-white transition hover:bg-[#083457]"
->
-                    {language === "en" ? "Enroll Now" : "Inscribirse Ahora"}
-                  </Link>
-                </div>
-              </div>
-            </div>
+      {/* ICMS 3.0 */}
+      <div className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-xl">
+        <div className="h-2 w-full bg-gradient-to-r from-[#0B4A7C] to-[#1a6fa3]" />
+        <div className="p-6">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="rounded-full bg-[#0B4A7C]/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#0B4A7C]">
+              {language === "en" ? "Coordination" : "Coordinación"}
+            </span>
+            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-green-700">
+              {language === "en" ? "Available" : "Disponible"}
+            </span>
           </div>
-
-          {/* Right column - Text */}
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900 md:text-4xl">
-              {language === "en"
-                ? "About the Training Platform"
-                : "Sobre la Plataforma de Capacitación"}
-            </h2>
-
-            <div className="mt-6 space-y-4 text-base leading-relaxed text-gray-700">
-              <p>
-                {language === "en"
-                  ? "The INSARAG Online Training Platform is a global learning environment designed to support the INSARAG network in the dissemination of standardized knowledge, tools, and guidance relevant to international USAR coordination."
-                  : "La Plataforma de Capacitación en Línea de INSARAG es un entorno de aprendizaje global diseñado para apoyar a la red INSARAG en la difusión de conocimientos estandarizados, herramientas y orientación relevantes para la coordinación internacional USAR."}
-              </p>
-              <p>
-                {language === "en"
-                  ? "The platform provides a structured and accessible space for self-paced online courses that respond to evolving operational needs of the network. It is intended to complement existing INSARAG training mechanisms by offering flexible learning opportunities that can be accessed anytime and anywhere."
-                  : "La plataforma proporciona un espacio estructurado y accesible para cursos en línea de autoaprendizaje que responden a las necesidades operativas en evolución de la red. Está destinada a complementar los mecanismos de capacitación existentes de INSARAG al ofrecer oportunidades de aprendizaje flexibles que se pueden acceder en cualquier momento y lugar."}
-              </p>
-              <p>
-                {language === "en"
-                  ? "As an initial step, the platform hosts the ICMS 3.0 online training, supporting the introduction and operational understanding of the updated system. This course is part of the broader capacity-building efforts accompanying the implementation of ICMS 3.0 and aims to ensure a consistent baseline of knowledge across the INSARAG community."
-                  : "Como paso inicial, la plataforma alberga la capacitación en línea de ICMS 3.0, apoyando la introducción y comprensión operativa del sistema actualizado. Este curso es parte de los esfuerzos más amplios de desarrollo de capacidades que acompañan la implementación de ICMS 3.0 y tiene como objetivo garantizar una línea base consistente de conocimiento en toda la comunidad INSARAG."}
-              </p>
-              <p>
-                {language === "en"
-                  ? "Over time, the platform may also support additional courses of common interest to the network, contributing to continuous learning and knowledge sharing while maintaining alignment with INSARAG structures and working groups."
-                  : "Con el tiempo, la plataforma también puede apoyar cursos adicionales de interés común para la red, contribuyendo al aprendizaje continuo y al intercambio de conocimientos mientras mantiene la alineación con las estructuras y grupos de trabajo de INSARAG."}
-              </p>
-            </div>
+          <h3 className="text-lg font-extrabold text-gray-900">
+            {language === "en" ? "INSARAG Coordination and Management System" : "Sistema de Coordinación y Gestión INSARAG"}
+          </h3>
+          <p className="mt-0.5 text-sm font-semibold text-[#0B4A7C]">ICMS 3.0</p>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600">
+            {language === "en"
+              ? "Comprehensive introduction to ICMS 3.0 — covering the RDC, UCC, OSOCC, and the full coordination architecture for international USAR responses."
+              : "Introducción integral al ICMS 3.0 — cubre el RDC, UCC, OSOCC y la arquitectura completa de coordinación para respuestas USAR internacionales."}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-500">
+            <span>⏱ {language === "en" ? "8 hours" : "8 horas"}</span>
+            <span>📚 {language === "en" ? "10 modules" : "10 módulos"}</span>
+            <span>🎓 {language === "en" ? "Certificate included" : "Certificado incluido"}</span>
+          </div>
+          <div className="mt-4">
+            <Link href="/courses/icms-30-online-training" className="block w-full rounded-xl bg-[#0B4A7C] px-5 py-2.5 text-center text-sm font-bold text-white transition hover:bg-[#083457]">
+              {language === "en" ? "Start Course →" : "Iniciar Curso →"}
+            </Link>
           </div>
         </div>
-      </section>
+      </div>
+
+      {/* USAR Coordination */}
+      <div className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-xl">
+        <div className="h-2 w-full bg-gradient-to-r from-[#1a6fa3] to-[#2ea3d4]" />
+        <div className="p-6">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="rounded-full bg-[#1a6fa3]/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#1a6fa3]">
+              {language === "en" ? "Operations" : "Operaciones"}
+            </span>
+            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-green-700">
+              {language === "en" ? "Available" : "Disponible"}
+            </span>
+          </div>
+          <h3 className="text-lg font-extrabold text-gray-900">
+            {language === "en" ? "USAR Coordination Operator" : "Operador de Coordinación USAR"}
+          </h3>
+          <p className="mt-0.5 text-sm font-semibold text-[#1a6fa3]">
+            {language === "en" ? "RDC & UCC Functions" : "Funciones RDC y UCC"}
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600">
+            {language === "en"
+              ? "Deep dive into the operational roles of the Reception and Departure Centre (RDC) and the USAR Coordination Cell (UCC) during international disaster responses."
+              : "Profundización en los roles operacionales del Centro de Recepción y Salida (RDC) y la Célula de Coordinación USAR (UCC) durante respuestas internacionales a desastres."}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-500">
+            <span>⏱ {language === "en" ? "3 hours" : "3 horas"}</span>
+            <span>📚 {language === "en" ? "3 modules" : "3 módulos"}</span>
+            <span>🎓 {language === "en" ? "Certificate included" : "Certificado incluido"}</span>
+          </div>
+          <div className="mt-4">
+            <Link href="/courses/usar-coordination-course" className="block w-full rounded-xl bg-[#1a6fa3] px-5 py-2.5 text-center text-sm font-bold text-white transition hover:bg-[#155d8a]">
+              {language === "en" ? "Start Course →" : "Iniciar Curso →"}
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* RIGHT — About */}
+    <div className="lg:sticky lg:top-24 lg:self-start">
+      <h2 className="text-3xl font-bold text-gray-900 md:text-4xl">
+        {language === "en" ? "About the Training Platform" : "Sobre la Plataforma de Capacitación"}
+      </h2>
+      <div className="mt-6 space-y-4 text-base leading-relaxed text-gray-700">
+        <p>
+          {language === "en"
+            ? "The INSARAG Online Training Platform is a global learning environment designed to support the INSARAG network in the dissemination of standardized knowledge, tools, and guidance relevant to international USAR coordination."
+            : "La Plataforma de Capacitación en Línea de INSARAG es un entorno de aprendizaje global diseñado para apoyar a la red INSARAG en la difusión de conocimientos estandarizados, herramientas y orientación relevantes para la coordinación internacional USAR."}
+        </p>
+        <p>
+          {language === "en"
+            ? "The platform provides a structured and accessible space for self-paced online courses that respond to evolving operational needs of the network. It is intended to complement existing INSARAG training mechanisms by offering flexible learning opportunities that can be accessed anytime and anywhere."
+            : "La plataforma proporciona un espacio estructurado y accesible para cursos en línea de autoaprendizaje que responden a las necesidades operativas en evolución de la red. Está destinada a complementar los mecanismos de capacitación existentes de INSARAG al ofrecer oportunidades de aprendizaje flexibles que se pueden acceder en cualquier momento y lugar."}
+        </p>
+        <p>
+          {language === "en"
+            ? "As an initial step, the platform hosts the ICMS 3.0 online training, supporting the introduction and operational understanding of the updated system. This course is part of the broader capacity-building efforts accompanying the implementation of ICMS 3.0 and aims to ensure a consistent baseline of knowledge across the INSARAG community."
+            : "Como paso inicial, la plataforma alberga la capacitación en línea de ICMS 3.0, apoyando la introducción y comprensión operativa del sistema actualizado. Este curso es parte de los esfuerzos más amplios de desarrollo de capacidades que acompañan la implementación de ICMS 3.0."}
+        </p>
+        <p>
+          {language === "en"
+            ? "Over time, the platform may also support additional courses of common interest to the network, contributing to continuous learning and knowledge sharing while maintaining alignment with INSARAG structures and working groups."
+            : "Con el tiempo, la plataforma también puede apoyar cursos adicionales de interés común para la red, contribuyendo al aprendizaje continuo y al intercambio de conocimientos mientras mantiene la alineación con las estructuras y grupos de trabajo de INSARAG."}
+        </p>
+      </div>
+    </div>
+
+  </div>
+</section>
 
       {/* ABOUT INSARAG SECTION */}
       <section className="bg-gray-50 py-20">
