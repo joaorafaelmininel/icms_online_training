@@ -12,7 +12,6 @@ interface Slide {
   bgImage: string;
   bgImageRight?: string;
 }
-
 const slides: Slide[] = [
   {
     title: {
@@ -37,11 +36,25 @@ const slides: Slide[] = [
       es: "Domina el sistema de coordinación y gestión actualizado — 10 módulos, a tu ritmo",
     },
     cta: { en: "Start the course", es: "Iniciar el curso" },
-    ctaHref: "/auth?tab=signup",
+    ctaHref: "/courses/icms-30-online-training",
     bgImage: "/icms-tablet-hero.png",
     bgImageRight: "/icms-hero.png",
   },
+  {
+    title: {
+      en: "USAR Coordination Operator",
+      es: "Operador de Coordinación USAR",
+    },
+    subtitle: {
+      en: "Deep dive into RDC & UCC functions — 3 modules on international USAR coordination",
+      es: "Profundización en las funciones del RDC y la UCC — 3 módulos sobre coordinación USAR internacional",
+    },
+    cta: { en: "Start the course", es: "Iniciar el curso" },
+    ctaHref: "/courses/usar-coordination-course",
+    bgImage: "/usar-team-hero.png",
+  },
 ];
+
 
 export default function HeroCarousel({ language = "en" }: { language?: string }) {
   const [current, setCurrent] = useState(0);
