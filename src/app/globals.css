@@ -49,3 +49,17 @@ body {
 .input {
   @apply w-full rounded-lg border px-4 py-2;
 }
+
+/* Print configuration for certificate PDF */
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+}

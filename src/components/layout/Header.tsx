@@ -43,10 +43,10 @@ export default async function Header() {
           <Image
             src="/insarag-logo-blue.svg"
             alt="INSARAG - International Search and Rescue Advisory Group"
-            width={210}
-            height={52}
+            width={310}
+            height={152}
             priority
-            className="h-[68px] w-auto"
+            className="h-[82px] w-auto"
           />
         </a>
 
