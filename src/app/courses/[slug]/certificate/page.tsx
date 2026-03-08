@@ -18,8 +18,10 @@ type EnrollmentRow = {
 
 export default async function CertificatePage({
   params,
+  searchParams,
 }: {
   params: { slug: string }
+  searchParams: { lang?: string; from?: string }
 }) {
   const { slug } = params
   const supabase = createClient()
@@ -53,32 +55,40 @@ export default async function CertificatePage({
     redirect(`/courses/${encodeURIComponent(slug)}`)
   }
 
-  // PROFILE — use auth metadata as fallback if profile query fails
+  // PROFILE
   const { data: profile } = await supabase
     .from('profiles')
     .select('first_name, last_name, email, preferred_language')
     .eq('id', user.id)
     .single<Pick<Profile, 'first_name' | 'last_name' | 'email' | 'preferred_language'>>()
 
-  const language: Lang = profile?.preferred_language || 'en'
+  // Language priority:
+  // 1. ?lang= in URL  (explicit — passed by certificates page)
+  // 2. profile.preferred_language
+  // 3. fallback 'en'
+  const language: Lang =
+    searchParams.lang === 'es' ? 'es'
+    : searchParams.lang === 'en' ? 'en'
+    : (profile?.preferred_language as Lang) ?? 'en'
 
-  // Build full name — try profile first, then auth metadata, then email prefix
+  // Whether the user came from /certificates
+  const fromCertificates = searchParams.from === 'certificates'
+
+  // NAME
   const firstName = profile?.first_name || (user.user_metadata?.first_name as string) || ''
-  const lastName = profile?.last_name || (user.user_metadata?.last_name as string) || ''
-  const fullName =
+  const lastName  = profile?.last_name  || (user.user_metadata?.last_name  as string) || ''
+  const fullName  =
     [firstName, lastName].filter(Boolean).join(' ') ||
-    (user.user_metadata?.full_name as string) ||
-    user.email?.split('@')[0] ||
+    (user.user_metadata?.full_name as string)        ||
+    user.email?.split('@')[0]                        ||
     'Participant'
 
   const completionDate =
-    enrollment.completed_at ||
+    enrollment.completed_at          ||
     enrollment.certificate_issued_at ||
     new Date().toISOString()
 
-  const certNumber = `ICMS-${String(enrollment.id).substring(0, 8).toUpperCase()}`
-
-  // Signature image — place the file at /public/signature-stampa.png
+  const certNumber   = `ICMS-${String(enrollment.id).substring(0, 8).toUpperCase()}`
   const signatureUrl = '/signature-stampa.png'
 
   return (
@@ -91,6 +101,7 @@ export default async function CertificatePage({
       certNumber={certNumber}
       language={language}
       signatureUrl={signatureUrl}
+      fromCertificates={fromCertificates}
     />
   )
 }
