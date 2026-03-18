@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentLanguage } from '@/lib/i18n/language'
 import ModuleViewerClient from '@/components/modules/ModuleViewerClient'
 import type { Slide } from '@/lib/types/slides'
 
@@ -172,13 +173,7 @@ export default async function ModulePage({
 
   /* ───────── LANGUAGE ───────── */
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('preferred_language')
-    .eq('id', user.id)
-    .single<{ preferred_language: Lang }>()
-
-  const language: Lang = profile?.preferred_language ?? 'en'
+  const language: Lang = (await getCurrentLanguage()) as Lang
 
   /* ───────── RENDER ───────── */
 

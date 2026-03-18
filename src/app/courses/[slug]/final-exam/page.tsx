@@ -2,8 +2,9 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentLanguage } from '@/lib/i18n/language'
 import FinalExamClient from '@/components/courses/FinalExamClient'
-import type { Course, Profile } from '@/lib/types/database'
+import type { Course } from '@/lib/types/database'
 import type { FinalExamClientQuestion } from '@/lib/types/finalExam'
 
 type Lang = 'en' | 'es'
@@ -27,7 +28,7 @@ export default async function FinalExamPage({
   params: { slug: string }
 }) {
   const { slug } = params
-  const supabase = createClient()
+  const supabase = await createClient()
 
   /* ------------------------------------------------------------------
    * AUTH
@@ -125,13 +126,7 @@ export default async function FinalExamPage({
   /* ------------------------------------------------------------------
    * LANGUAGE
    * ------------------------------------------------------------------ */
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('preferred_language')
-    .eq('id', user.id)
-    .single<Pick<Profile, 'preferred_language'>>()
-
-  const language: Lang = profile?.preferred_language || 'en'
+  const language: Lang = (await getCurrentLanguage()) as Lang
 
   /* ------------------------------------------------------------------
    * QUESTIONS (CLIENT SAFE — SEM RESPOSTA CORRETA)

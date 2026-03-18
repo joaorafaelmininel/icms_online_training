@@ -122,9 +122,6 @@ const i18n: Record<Lang, Record<string, string>> = {
   },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// CONSTANTS
-// ═══════════════════════════════════════════════════════════════════════════════
 const TEAM_TYPES = [
   'Assessment', 'Coordination', 'EMT', 'Environmental', 'Firefighting',
   'Flood', 'Logistics', 'Shelter', 'Telecom', 'USAR', 'WASH',
@@ -154,14 +151,10 @@ const COUNTRIES = [
   'Uzbekistan','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe',
 ];
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════════
 export default function AuthClient({
   initialTab = 'signin',
   redirectTo = '/dashboard',
 }: AuthClientProps) {
-  // ─── Language — reads cookie on mount, updates UI instantly ────────────────
   const [lang, setLang] = useState<Lang>('en');
   const t = i18n[lang];
 
@@ -175,7 +168,6 @@ export default function AuthClient({
     setLang(newLang);
   }, []);
 
-  // ─── Auth state ───────────────────────────────────────────────────────────
   const [tab, setTab] = useState<Tab>(initialTab);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -212,7 +204,6 @@ export default function AuthClient({
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
   const set = useCallback(
     (field: string, value: string | boolean) =>
       setSignUpData((p) => ({ ...p, [field]: value })),
@@ -225,12 +216,10 @@ export default function AuthClient({
     setUsernameAvailable(null);
   };
 
-  // Sync preferred_language with UI language
   useEffect(() => {
     set('preferred_language', lang);
   }, [lang, set]);
 
-  // Debounced username check
   useEffect(() => {
     if (!signUpData.username || signUpData.username.length < 3) {
       setUsernameAvailable(null);
@@ -278,73 +267,96 @@ export default function AuthClient({
     setSuccess(null);
 
     if (signUpData.first_name.trim().length < 2) { setError(t.errFirstName); return; }
-    if (signUpData.last_name.trim().length < 2) { setError(t.errLastName); return; }
-    if (signUpData.username.length < 3) { setError(t.errUsername); return; }
-    if (usernameAvailable === false) { setError(t.errUsernameTaken); return; }
-    if (!signUpData.email.includes('@')) { setError(t.errEmail); return; }
-    if (signUpData.password.length < 6) { setError(t.errPassword); return; }
-    if (!signUpData.country) { setError(t.errCountry); return; }
-    if (!signUpData.terms_accepted) { setError(t.errTerms); return; }
+    if (signUpData.last_name.trim().length < 2)  { setError(t.errLastName);  return; }
+    if (signUpData.username.length < 3)           { setError(t.errUsername);  return; }
+    if (usernameAvailable === false)              { setError(t.errUsernameTaken); return; }
+    if (!signUpData.email.includes('@'))          { setError(t.errEmail);    return; }
+    if (signUpData.password.length < 6)           { setError(t.errPassword); return; }
+    if (!signUpData.country)                      { setError(t.errCountry);  return; }
+    if (!signUpData.terms_accepted)               { setError(t.errTerms);    return; }
 
     startTransition(async () => {
       try {
-        const { data: authData, error: err } = await supabase.auth.signUp({
+        // 1. Create auth user
+        const { data: authData, error: authErr } = await supabase.auth.signUp({
           email: signUpData.email,
           password: signUpData.password,
           options: {
             data: {
-              username: signUpData.username,
-              first_name: signUpData.first_name.trim(),
-              last_name: signUpData.last_name.trim(),
-              title: signUpData.title,
-              country: signUpData.country,
-              preferred_language: signUpData.preferred_language,
+              username:            signUpData.username,
+              first_name:          signUpData.first_name.trim(),
+              last_name:           signUpData.last_name.trim(),
+              title:               signUpData.title,
+              country:             signUpData.country,
+              preferred_language:  signUpData.preferred_language,
             },
           },
         });
-        if (err) throw err;
+        if (authErr) throw authErr;
+        if (!authData.user) throw new Error('No user returned from signup');
 
-        if (authData.user) {
-          const payload: Record<string, any> = {
-            terms_accepted: true,
-            terms_accepted_at: new Date().toISOString(),
-            privacy_accepted: true,
-            privacy_accepted_at: new Date().toISOString(),
-            profile_completed: true,
-          };
-          if (signUpData.middle_name.trim()) payload.middle_name = signUpData.middle_name.trim();
-          if (signUpData.organization.trim()) payload.organization = signUpData.organization.trim();
-          if (signUpData.organization_country) payload.organization_country = signUpData.organization_country;
-          if (signUpData.job_title.trim()) payload.job_title = signUpData.job_title.trim();
-          if (signUpData.usar_role.trim()) payload.usar_role = signUpData.usar_role.trim();
-          if (signUpData.team_type) payload.team_type = signUpData.team_type;
-          if (signUpData.years_experience) payload.years_experience = parseInt(signUpData.years_experience);
-          if (signUpData.phone.trim()) payload.phone = signUpData.phone.trim();
-          await supabase.from('profiles').update(payload).eq('id', authData.user.id);
+        // 2. Build full profile payload — do NOT rely on the trigger alone
+        const profilePayload: Record<string, any> = {
+          id:                   authData.user.id,
+          username:             signUpData.username,
+          email:                signUpData.email,
+          title:                signUpData.title,
+          first_name:           signUpData.first_name.trim(),
+          last_name:            signUpData.last_name.trim(),
+          country:              signUpData.country,
+          preferred_language:   signUpData.preferred_language,
+          user_role:            'student',
+          account_status:       'active',
+          profile_completed:    true,
+          terms_accepted:       true,
+          terms_accepted_at:    new Date().toISOString(),
+          privacy_accepted:     true,
+          privacy_accepted_at:  new Date().toISOString(),
+          email_notifications:  true,
+          notify_new_courses:   true,
+        };
+
+        // Optional fields
+        if (signUpData.middle_name.trim())         profilePayload.middle_name         = signUpData.middle_name.trim();
+        if (signUpData.organization.trim())        profilePayload.organization        = signUpData.organization.trim();
+        if (signUpData.organization_country)       profilePayload.organization_country= signUpData.organization_country;
+        if (signUpData.job_title.trim())           profilePayload.job_title           = signUpData.job_title.trim();
+        if (signUpData.usar_role.trim())           profilePayload.usar_role           = signUpData.usar_role.trim();
+        if (signUpData.team_type)                  profilePayload.team_type           = signUpData.team_type;
+        if (signUpData.years_experience)           profilePayload.years_experience    = parseInt(signUpData.years_experience);
+        if (signUpData.phone.trim())               profilePayload.phone               = signUpData.phone.trim();
+
+        // 3. Upsert profile (handles both: trigger already ran OR trigger failed)
+        const { error: profileErr } = await supabase
+          .from('profiles')
+          .upsert(profilePayload, { onConflict: 'id' });
+
+        // Log profile error but don't block the user — auth was created successfully
+        if (profileErr) {
+          console.error('Profile upsert error:', profileErr.message);
         }
 
-        if (authData.user && !authData.session) {
+        // 4. Navigate or show confirmation
+        if (!authData.session) {
+          // Email confirmation required
           setSuccess(t.accountCreated);
-        } else if (authData.session) {
+        } else {
+          // Auto-confirmed (email confirmation disabled)
           window.location.href = redirectTo;
         }
+
       } catch (err: any) {
         setError(err.message || 'Failed to create account');
       }
     });
   };
 
-  // ─── Shared input classes ─────────────────────────────────────────────────
   const inputCls = 'w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500 disabled:opacity-60';
 
-  // ═════════════════════════════════════════════════════════════════════════════
-  // RENDER
-  // ═════════════════════════════════════════════════════════════════════════════
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#062a47] via-[#0B4A7C] to-[#083457] px-4 py-10">
       <div className="w-full max-w-md">
 
-        {/* ── LOGO ───────────────────────────────────────────────────────── */}
         <div className="mb-6 text-center flex flex-col items-center text-center">
           <Image
             src="/insarag-logo.svg"
@@ -356,7 +368,6 @@ export default function AuthClient({
           />
           <p className="mt-3 text-sm font-medium text-blue-200">{t.platformTitle}</p>
 
-          {/* ── LANGUAGE FLAGS ────────────────────────────────────────────── */}
           <div className="mt-4 flex items-center justify-center gap-3">
             {(['en', 'es'] as Lang[]).map((l) => (
               <button
@@ -381,10 +392,8 @@ export default function AuthClient({
           </div>
         </div>
 
-        {/* ── CARD ───────────────────────────────────────────────────────── */}
         <div className="rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
 
-          {/* Tabs */}
           <div className="mb-6 flex overflow-hidden rounded-lg bg-gray-100 p-1">
             {(['signin', 'signup'] as Tab[]).map((tb) => (
               <button
@@ -403,7 +412,6 @@ export default function AuthClient({
             {tab === 'signin' ? t.welcomeBack : t.createAccount}
           </h2>
 
-          {/* Messages */}
           {error && (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
           )}
@@ -411,9 +419,7 @@ export default function AuthClient({
             <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{success}</div>
           )}
 
-          {/* ═══════════════════════════════════════════════════════════════ */}
-          {/* SIGN IN                                                        */}
-          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* SIGN IN */}
           {tab === 'signin' && (
             <form onSubmit={handleSignIn} className="space-y-4">
               <div>
@@ -436,15 +442,12 @@ export default function AuthClient({
             </form>
           )}
 
-          {/* ═══════════════════════════════════════════════════════════════ */}
-          {/* SIGN UP                                                        */}
-          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* SIGN UP */}
           {tab === 'signup' && (
             <form onSubmit={handleSignUp} className="space-y-4">
 
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t.requiredInfo}</p>
 
-              {/* Title + First + Last */}
               <div className="grid grid-cols-12 gap-3">
                 <div className="col-span-3">
                   <label className="mb-1 block text-xs font-medium text-gray-700">{t.titleLabel} *</label>
@@ -464,7 +467,6 @@ export default function AuthClient({
                 </div>
               </div>
 
-              {/* Username */}
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-700">{t.username} *</label>
                 <div className="relative">
@@ -476,8 +478,8 @@ export default function AuthClient({
                     required minLength={3} maxLength={30}
                     disabled={isPending}
                     className={`${inputCls} pr-10 ${
-                      usernameAvailable === true ? 'border-green-400 bg-green-50' :
-                      usernameAvailable === false ? 'border-red-400 bg-red-50' : ''
+                      usernameAvailable === true  ? 'border-green-400 bg-green-50' :
+                      usernameAvailable === false ? 'border-red-400 bg-red-50'    : ''
                     }`}
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -497,24 +499,21 @@ export default function AuthClient({
                 </div>
                 <p className="mt-1 text-xs text-gray-400">
                   {t.usernameHint}
-                  {usernameAvailable === true && <span className="ml-1 font-medium text-green-600">{t.usernameAvailable}</span>}
+                  {usernameAvailable === true  && <span className="ml-1 font-medium text-green-600">{t.usernameAvailable}</span>}
                   {usernameAvailable === false && <span className="ml-1 font-medium text-red-600">{t.usernameTaken}</span>}
                 </p>
               </div>
 
-              {/* Email */}
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-700">{t.email} *</label>
                 <input type="email" value={signUpData.email} onChange={(e) => set('email', e.target.value)} placeholder={t.emailPlaceholder} required disabled={isPending} className={inputCls} />
               </div>
 
-              {/* Password */}
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-700">{t.password} *</label>
                 <input type="password" value={signUpData.password} onChange={(e) => set('password', e.target.value)} placeholder={t.passwordPlaceholder} required minLength={6} disabled={isPending} className={inputCls} />
               </div>
 
-              {/* Country + Language */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-700">{t.country} *</label>
@@ -525,19 +524,13 @@ export default function AuthClient({
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-700">{t.language}</label>
-                  <select
-                    value={lang}
-                    onChange={(e) => switchLanguage(e.target.value as Lang)}
-                    disabled={isPending}
-                    className={inputCls}
-                  >
+                  <select value={lang} onChange={(e) => switchLanguage(e.target.value as Lang)} disabled={isPending} className={inputCls}>
                     <option value="en">English</option>
                     <option value="es">Español</option>
                   </select>
                 </div>
               </div>
 
-              {/* ── OPTIONAL (collapsible) ────────────────────────────────── */}
               <details className="group">
                 <summary className="flex cursor-pointer items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-400 hover:text-gray-600">
                   <svg className="h-3 w-3 transition group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -593,7 +586,6 @@ export default function AuthClient({
                 </div>
               </details>
 
-              {/* ── TERMS ────────────────────────────────────────────────── */}
               <div className="pt-1">
                 <label className="flex cursor-pointer items-start gap-2 text-sm text-gray-700">
                   <input
@@ -613,7 +605,6 @@ export default function AuthClient({
                 </label>
               </div>
 
-              {/* ── SUBMIT ───────────────────────────────────────────────── */}
               <button type="submit" disabled={isPending} className="w-full rounded-lg bg-[#FF6B35] py-3 font-semibold text-white shadow-sm transition hover:bg-[#E55A2B] disabled:cursor-not-allowed disabled:opacity-50">
                 {isPending ? t.creatingAccount : t.signUpBtn}
               </button>
@@ -624,7 +615,6 @@ export default function AuthClient({
             </form>
           )}
 
-          {/* Footer */}
           <p className="mt-6 text-center text-xs text-gray-400">
             {t.footerText}{' '}
             <Link href="/terms" className="text-[#0B4A7C] hover:underline">{t.termsOfUse}</Link>

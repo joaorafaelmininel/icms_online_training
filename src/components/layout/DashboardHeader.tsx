@@ -14,24 +14,27 @@ interface DashboardHeaderProps {
   userAvatar?: string | null;
   language: 'en' | 'es';
   userId?: string;
+  userRole?: 'student' | 'instructor' | 'admin';
 }
 
 const translations = {
   en: {
-    dashboard: 'My Courses',
-    myCourses: 'My Courses',
+    dashboard: 'My Dashboard',
+    myCourses: 'My Dashboard',
     profile: 'Profile',
     certificates: 'Certificates',
     settings: 'Settings',
     signOut: 'Sign Out',
+    adminPanel: 'Admin Panel',
   },
   es: {
-    dashboard: 'Mis Cursos',
-    myCourses: 'Mis Cursos',
+    dashboard: 'Mi Panel de Control',
+    myCourses: 'Mi Panel de Control',
     profile: 'Perfil',
     certificates: 'Certificados',
     settings: 'Configuración',
     signOut: 'Cerrar Sesión',
+    adminPanel: 'Panel Admin',
   },
 };
 
@@ -41,6 +44,7 @@ export default function DashboardHeader({
   userAvatar,
   language,
   userId,
+  userRole = 'student',
 }: DashboardHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -98,6 +102,11 @@ export default function DashboardHeader({
           <Link href="/certificates" className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 hover:text-[#0B4A7C]">
             {t.certificates}
           </Link>
+          {userRole === 'admin' && (
+            <Link href="/admin/slides" className="rounded-lg px-4 py-2 text-sm font-medium text-[#0B4A7C] transition hover:bg-[#0B4A7C]/10 hover:text-[#0B4A7C] font-semibold">
+              {t.adminPanel}
+            </Link>
+          )}
         </nav>
 
         {/* Right side */}
@@ -156,6 +165,12 @@ export default function DashboardHeader({
                     <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
                     {t.certificates}
                   </Link>
+                  {userRole === 'admin' && (
+                    <Link href="/admin/slides" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition hover:bg-gray-50">
+                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                      {t.adminPanel}
+                    </Link>
+                  )}
                 </div>
 
                 <div className="border-t border-gray-100 pt-1">
@@ -186,6 +201,9 @@ export default function DashboardHeader({
         <nav className="border-t border-gray-100 bg-white px-4 pb-4 pt-2 md:hidden">
           <Link href="/dashboard" className="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">{t.dashboard}</Link>
           <Link href="/certificates" className="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">{t.certificates}</Link>
+          {userRole === 'admin' && (
+            <Link href="/admin/slides" className="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">{t.adminPanel}</Link>
+          )}
           <Link href="/profile" className="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">{t.profile}</Link>
         </nav>
       )}

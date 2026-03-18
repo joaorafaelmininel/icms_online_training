@@ -2,8 +2,12 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentLanguage } from '@/lib/i18n/language'
 import CertificateClient from '@/components/courses/CertificateClient'
 import type { Profile, Course } from '@/lib/types/database'
+
+// Force dynamic rendering — prevents Next.js 14 from caching searchParams
+export const dynamic = 'force-dynamic'
 
 type Lang = 'en' | 'es'
 
@@ -24,7 +28,7 @@ export default async function CertificatePage({
   searchParams: { lang?: string; from?: string }
 }) {
   const { slug } = params
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // AUTH
   const { data: { user } } = await supabase.auth.getUser()
@@ -62,13 +66,16 @@ export default async function CertificatePage({
     .eq('id', user.id)
     .single<Pick<Profile, 'first_name' | 'last_name' | 'email' | 'preferred_language'>>()
 
-  // Language priority:
-  // 1. ?lang= in URL  (explicit — passed by certificates page)
-  // 2. profile.preferred_language
-  // 3. fallback 'en'
+  // Language resolution — three sources in priority order:
+  // 1. ?lang= query param (explicit, set by certificates/page.tsx from the cookie)
+  // 2. cookie via getCurrentLanguage() (reflects what the navbar switcher set)
+  // 3. profile.preferred_language (DB fallback)
+  // 4. 'en' hard fallback
+  const cookieLang = await getCurrentLanguage()
   const language: Lang =
     searchParams.lang === 'es' ? 'es'
     : searchParams.lang === 'en' ? 'en'
+    : cookieLang === 'es' ? 'es'
     : (profile?.preferred_language as Lang) ?? 'en'
 
   // Whether the user came from /certificates

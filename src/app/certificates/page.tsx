@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import type { Profile } from '@/lib/types/database'
+import { getCurrentLanguage } from '@/lib/i18n/language'
 
 type Lang = 'en' | 'es'
 
@@ -46,23 +46,14 @@ const i18n: Record<Lang, any> = {
 }
 
 export default async function CertificatesPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
-  // AUTH
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth?tab=signin&redirectTo=/certificates')
 
-  // LANGUAGE
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('preferred_language')
-    .eq('id', user.id)
-    .single<Pick<Profile, 'preferred_language'>>()
-
-  const language: Lang = (profile?.preferred_language as Lang) || 'en'
+  const language: Lang = (await getCurrentLanguage()) as Lang
   const t = i18n[language]
 
-  // CERTIFICATES
   const { data: enrollments } = await supabase
     .from('course_enrollments')
     .select(`
@@ -96,7 +87,6 @@ export default async function CertificatesPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
 
-        {/* Header */}
         <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 sm:text-3xl">
@@ -113,7 +103,6 @@ export default async function CertificatesPage() {
         </div>
 
         {certs.length === 0 ? (
-          /* EMPTY STATE */
           <div className="rounded-xl border-2 border-dashed border-gray-200 bg-white p-10 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
               <svg className="h-8 w-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,7 +118,6 @@ export default async function CertificatesPage() {
             </Link>
           </div>
         ) : (
-          /* CERTIFICATE LIST */
           <div className="space-y-4">
             {certs.map((cert) => {
               const dateStr = cert.completedAt
@@ -139,8 +127,6 @@ export default async function CertificatesPage() {
                   )
                 : ''
 
-              // ── Link passes language + signals origin so the certificate
-              //    page can show "← My Certificates" and render in the right language
               const certHref =
                 `/courses/${cert.courseSlug}/certificate?lang=${language}&from=certificates`
 
@@ -148,7 +134,6 @@ export default async function CertificatesPage() {
                 <div key={cert.id}
                   className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md">
                   <div className="flex items-center gap-5 p-5">
-                    {/* Icon */}
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#0B4A7C]/10">
                       <svg className="h-7 w-7 text-[#0B4A7C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -156,7 +141,6 @@ export default async function CertificatesPage() {
                       </svg>
                     </div>
 
-                    {/* Info */}
                     <div className="min-w-0 flex-1">
                       <h3 className="text-base font-bold text-gray-900">
                         {loc(cert.courseTitle, language)}
@@ -170,7 +154,6 @@ export default async function CertificatesPage() {
                       </div>
                     </div>
 
-                    {/* Action — href carries lang + from=certificates */}
                     <Link href={certHref}
                       className="flex shrink-0 items-center gap-2 rounded-lg bg-[#0B4A7C] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#083457]">
                       {t.viewCertificate}
