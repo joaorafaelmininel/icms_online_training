@@ -123,7 +123,7 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
           </div>
         </div>
         <a href="/dashboard" className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50">
-          Back to Dashboard
+        ↩  My Dashboard
         </a>
       </header>
 
