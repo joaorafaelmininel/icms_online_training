@@ -1,7 +1,7 @@
 // src/app/api/certificates/download/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { generateCertificatePdf } from '@/lib/certificates/generateCertificatePdf'
+import { generateCertificatePdf } from '@/lib/certificate/generateCertificatePdf'
 
 export async function POST(req: NextRequest) {
   try {
