@@ -1,11 +1,47 @@
 // src/components/courses/CertificateClient.tsx
 'use client'
 
-import { useCallback } from 'react'
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 
 type Lang = 'en' | 'es'
-interface LocalizedText { en: string; es: string }
+
+interface LocalizedText {
+  en: string
+  es: string
+}
+
+interface Props {
+  courseTitle: LocalizedText
+  courseSlug: string
+  fullName: string
+  completionDate: string
+  certNumber: string
+  language: Lang
+  signatureUrl?: string
+  fromCertificates?: boolean
+  score?: number
+}
+
+type CertBodyProps = {
+  fullName: string
+  courseText: string
+  formattedDate: string
+  certNo: string
+  signatureUrl?: string
+  line1: string
+  recLine: string
+  conf: string
+  BLUE: string
+  BLUE_LT: string
+  TEXT_DARK: string
+  TEXT_MID: string
+}
+
+const ARTBOARD_WIDTH = 1404
+const ARTBOARD_HEIGHT = 993
 
 function loc(f: LocalizedText | string | null | undefined, l: Lang): string {
   if (!f) return ''
@@ -13,238 +49,689 @@ function loc(f: LocalizedText | string | null | undefined, l: Lang): string {
   return f[l] || f.en || ''
 }
 
-interface Props {
-  courseTitle:       LocalizedText
-  courseSlug:        string
-  fullName:          string
-  completionDate:    string
-  certNumber:        string
-  language:          Lang
-  signatureUrl?:     string
-  fromCertificates?: boolean
-  score?:            number
+function formatCertificateDate(value: string, isEs: boolean): string {
+  if (!value) return ''
+
+  let date: Date | null = null
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number)
+    date = new Date(year, month - 1, day)
+  } else {
+    const parsed = new Date(value)
+    if (!Number.isNaN(parsed.getTime())) {
+      date = parsed
+    }
+  }
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat(isEs ? 'es-ES' : 'en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(date)
+}
+
+function sanitizeFileName(input: string): string {
+  return input
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9-_ ]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .toLowerCase()
+}
+
+async function waitForAssets(root: HTMLElement): Promise<void> {
+  if ('fonts' in document) {
+    try {
+      await (document as Document & { fonts: FontFaceSet }).fonts.ready
+    } catch {
+      // ignore
+    }
+  }
+
+  const images = Array.from(root.querySelectorAll('img'))
+
+  await Promise.all(
+    images.map(async (img) => {
+      try {
+        if (img.complete) return
+
+        if ('decode' in img) {
+          await img.decode()
+          return
+        }
+
+        await new Promise<void>((resolve) => {
+          img.onload = () => resolve()
+          img.onerror = () => resolve()
+        })
+      } catch {
+        // ignore
+      }
+    })
+  )
+}
+
+async function renderCertificateCanvas(element: HTMLElement): Promise<HTMLCanvasElement> {
+  await waitForAssets(element)
+
+  return html2canvas(element, {
+    scale: 3,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    logging: false,
+    width: ARTBOARD_WIDTH,
+    height: ARTBOARD_HEIGHT,
+    windowWidth: ARTBOARD_WIDTH,
+    windowHeight: ARTBOARD_HEIGHT,
+    scrollX: 0,
+    scrollY: 0,
+  })
 }
 
 export default function CertificateClient({
-  courseTitle, courseSlug, fullName, completionDate,
-  certNumber, language, signatureUrl,
+  courseTitle,
+  courseSlug,
+  fullName,
+  completionDate,
+  certNumber,
+  language,
+  signatureUrl,
 }: Props) {
-  const isEs = language === 'es'
+  const certificateRef = useRef<HTMLDivElement>(null)
+  const previewWrapRef = useRef<HTMLDivElement>(null)
 
-  const formattedDate = new Date(completionDate).toLocaleDateString(
-    isEs ? 'es-ES' : 'en-US',
-    { year: 'numeric', month: 'long', day: 'numeric' }
+  const isEs = language === 'es'
+  const [previewScale, setPreviewScale] = useState(1)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [isRenderingPreview, setIsRenderingPreview] = useState(false)
+
+  const formattedDate = useMemo(
+    () => formatCertificateDate(completionDate, isEs),
+    [completionDate, isEs]
   )
 
-  const handlePrint = useCallback(() => { window.print() }, [])
+  useEffect(() => {
+    function updateScale() {
+      const wrap = previewWrapRef.current
+      if (!wrap) return
+
+      const availableWidth = Math.max(wrap.clientWidth - 24, 320)
+      const nextScale = Math.min(0.85, availableWidth / ARTBOARD_WIDTH)
+      setPreviewScale(nextScale)
+    }
+
+    updateScale()
+    window.addEventListener('resize', updateScale)
+
+    return () => window.removeEventListener('resize', updateScale)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function generatePreview() {
+      const element = certificateRef.current
+      if (!element) return
+
+      try {
+        setIsRenderingPreview(true)
+        const canvas = await renderCertificateCanvas(element)
+        const dataUrl = canvas.toDataURL('image/png')
+
+        if (!cancelled) {
+          setPreviewImage(dataUrl)
+        }
+      } catch (error) {
+        console.error('Failed to generate certificate preview:', error)
+      } finally {
+        if (!cancelled) {
+          setIsRenderingPreview(false)
+        }
+      }
+    }
+
+    generatePreview()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fullName, courseTitle, formattedDate, certNumber, signatureUrl, language])
+
+  const handleDownloadPdf = useCallback(async () => {
+    const element = certificateRef.current
+    if (!element || isDownloading) return
+
+    try {
+      setIsDownloading(true)
+
+      const canvas = await renderCertificateCanvas(element)
+      const imageData = canvas.toDataURL('image/png')
+
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4',
+        compress: true,
+      })
+
+      pdf.addImage(imageData, 'PNG', 0, 0, 297, 210, undefined, 'FAST')
+
+      const fileName = `certificate-${sanitizeFileName(fullName)}-${sanitizeFileName(certNumber)}.pdf`
+      pdf.save(fileName)
+    } catch (error) {
+      console.error('Failed to download certificate PDF:', error)
+    } finally {
+      setIsDownloading(false)
+    }
+  }, [certNumber, fullName, isDownloading])
 
   const T = {
-    line1:    isEs ? 'Este Certificado es otorgado a'                               : 'This Certificate is awarded to',
-    recLine:  isEs ? 'en reconocimiento por la exitosa finalización del Curso en el' : 'in recognition of the successful completion of the online course on the',
-    conf:     isEs ? 'de conformidad con la Metodología y las Directrices de INSARAG e ICMS.' : 'in accordance with INSARAG and ICMS Methodology and Guidelines.',
-    certNo:   isEs ? `Certificado N.º: ${certNumber}` : `Certificate No.: ${certNumber}`,
-    myCerts:  isEs ? 'Mis Certificados' : 'My Certificates',
-    back:     isEs ? 'Volver al Curso'  : 'Back to Course',
-    download: isEs ? 'Descargar PDF'    : 'Download PDF',
-    hint:     isEs
-      ? 'En el diálogo de impresión, selecciona "Guardar como PDF" y activa "Gráficos de fondo".'
-      : 'In the print dialog, select "Save as PDF" and enable "Background graphics".',
+    line1: isEs
+      ? 'Este Certificado es otorgado a'
+      : 'This Certificate is awarded to',
+    recLine: isEs
+      ? 'en reconocimiento por la exitosa finalización del Curso en el'
+      : 'in recognition of the successful completion of the online course on the',
+    conf: isEs
+      ? 'de conformidad con la Metodología y las Directrices de INSARAG e ICMS.'
+      : 'in accordance with INSARAG and ICMS Methodology and Guidelines.',
+    certNo: isEs
+      ? `Certificado N.º: ${certNumber}`
+      : `Certificate No.: ${certNumber}`,
+    myCerts: isEs ? 'Mis Certificados' : 'My Certificates',
+    back: isEs ? 'Volver al Curso' : 'Back to Course',
+    download: isEs ? 'Descargar PDF' : 'Download PDF',
+    downloading: isEs ? 'Descargando...' : 'Downloading...',
+    hint: isEs
+      ? 'Haz clic en "Descargar PDF" para bajar el certificado directamente.'
+      : 'Click "Download PDF" to download the certificate directly.',
+    rendering: isEs ? 'Renderizando vista previa...' : 'Rendering preview...',
+    preparing: isEs ? 'Preparando certificado...' : 'Preparing certificate...',
   }
 
   const courseText = loc(courseTitle, language)
-  const BLUE      = '#0B4A7C'
-  const BLUE_LT   = '#7AC8E8'
+  const BLUE = '#0B4A7C'
+  const BLUE_LT = '#7AC8E8'
   const TEXT_DARK = '#111827'
-  const TEXT_MID  = '#374151'
+  const TEXT_MID = '#374151'
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: `
-        @page {
-          size: A4 landscape;
-          margin: 0;
-        }
-        @media print {
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          body { margin: 0 !important; padding: 0 !important; }
-          .no-print { display: none !important; }
-          .cert-wrap { display: block !important; }
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            html, body {
+              margin: 0;
+              padding: 0;
+            }
 
-          /* Screen px → PDF pt (scale factor 0.794 = 841pt / 1060px) */
-          .cert-line1    { font-size: 12pt !important; }   /* 16px * 0.794 */
-          .cert-name     { font-size: 32pt !important; }   /* 42px * 0.794 */
-          .cert-rule     { height:   1.5pt !important; }
-          .cert-rec      { font-size: 11pt !important; }   /* 15px */
-          .cert-title    { font-size: 18pt !important; }   /* 24px * 0.794 */
-          .cert-conf     { font-size: 11pt !important; }   /* 15px */
-          .cert-date     { font-size: 11pt !important; }   /* 15px */
-          .cert-certno   { font-size:  9pt !important; }   /* 12px * 0.794 */
-          .cert-sig-name { font-size: 10pt !important; }   /* 13px * 0.794 */
-          .cert-sig-sub  { font-size:  9pt !important; }   /* 12px * 0.794 */
-          .cert-sig-org  { font-size:  9pt !important; }   /* 11px * 0.794 */
-          .cert-logo     { height:    52pt !important; }   /* 70px * 0.794 */
-          .cert-sig-img  { height:    36pt !important; }   /* 48px * 0.794 */
-          .cert-emblem   { width:    270pt !important; height: 270pt !important; opacity: 0.60 !important; }
-        }
+            * {
+              box-sizing: border-box;
+            }
 
-        @media screen {
-          .cert-wrap { display: none !important; }
-        }
-      `}} />
+            .certificate-page {
+              min-height: 100vh;
+              background: #d1d5db;
+            }
 
-      {/* ── Controls (screen only) ── */}
-      <div className="no-print" style={{ minHeight:'100vh', background:'#d1d5db' }}>
-        <div style={{ maxWidth:960, margin:'0 auto', padding:'24px 24px 0' }}>
-          <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:16, marginBottom:24 }}>
+            .certificate-preview-wrap {
+              display: flex;
+              justify-content: center;
+              padding: 0 24px 64px;
+              overflow-x: auto;
+            }
+
+            .certificate-scale-box {
+              transform-origin: top center;
+              flex-shrink: 0;
+            }
+
+            .certificate-sheet {
+              width: ${ARTBOARD_WIDTH}px;
+              height: ${ARTBOARD_HEIGHT}px;
+              position: relative;
+              background: #fff;
+              overflow: hidden;
+              font-family: Roboto, Arial, sans-serif;
+              box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+              flex-shrink: 0;
+            }
+
+            @media print {
+              .no-print {
+                display: none !important;
+              }
+            }
+          `,
+        }}
+      />
+
+      <div className="certificate-page">
+        <div
+          className="no-print"
+          style={{ maxWidth: 960, margin: '0 auto', padding: '24px 24px 0' }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              marginBottom: 24,
+            }}
+          >
             <div>
-              <h1 style={{ fontSize:20, fontWeight:700, color:'#111827', margin:0 }}>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: 0 }}>
                 {isEs ? 'Tu Certificado' : 'Your Certificate'}
               </h1>
-              <p style={{ fontSize:12, color:'#9ca3af', margin:'4px 0 0' }}>{T.hint}</p>
+              <p style={{ fontSize: 12, color: '#9ca3af', margin: '4px 0 0' }}>
+                {T.hint}
+              </p>
             </div>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:12 }}>
-              <Link href="/certificates" style={{ borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', padding:'10px 20px', fontSize:14, fontWeight:600, color:'#4b5563', textDecoration:'none' }}>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+              <Link
+                href="/certificates"
+                style={{
+                  borderRadius: 8,
+                  border: '1px solid #e5e7eb',
+                  background: '#fff',
+                  padding: '10px 20px',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: '#4b5563',
+                  textDecoration: 'none',
+                }}
+              >
                 ← {T.myCerts}
               </Link>
-              <Link href={`/courses/${courseSlug}`} style={{ borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', padding:'10px 20px', fontSize:14, fontWeight:600, color:'#4b5563', textDecoration:'none' }}>
+
+              <Link
+                href={`/courses/${courseSlug}`}
+                style={{
+                  borderRadius: 8,
+                  border: '1px solid #e5e7eb',
+                  background: '#fff',
+                  padding: '10px 20px',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: '#4b5563',
+                  textDecoration: 'none',
+                }}
+              >
                 ← {T.back}
               </Link>
-              <button onClick={handlePrint} style={{ display:'flex', alignItems:'center', gap:8, borderRadius:8, background:BLUE, border:'none', padding:'10px 24px', fontSize:14, fontWeight:700, color:'#fff', cursor:'pointer' }}>
+
+              <button
+                onClick={handleDownloadPdf}
+                disabled={isDownloading}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  borderRadius: 8,
+                  background: BLUE,
+                  border: 'none',
+                  padding: '10px 24px',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: '#fff',
+                  cursor: isDownloading ? 'default' : 'pointer',
+                  opacity: isDownloading ? 0.8 : 1,
+                }}
+              >
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+                  />
                 </svg>
-                {T.download}
+                {isDownloading ? T.downloading : T.download}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Screen preview */}
-        <div style={{ display:'flex', justifyContent:'center', padding:'0 0 64px' }}>
+        <div ref={previewWrapRef} className="certificate-preview-wrap">
+          <div
+            className="certificate-scale-box"
+            style={{
+              width: ARTBOARD_WIDTH,
+              height: ARTBOARD_HEIGHT,
+              transform: `scale(${previewScale})`,
+              marginBottom: -(ARTBOARD_HEIGHT * (1 - previewScale)) - 40,
+            }}
+          >
+            {previewImage ? (
+              <img
+                src={previewImage}
+                alt="Certificate preview"
+                style={{
+                  display: 'block',
+                  width: ARTBOARD_WIDTH,
+                  height: ARTBOARD_HEIGHT,
+                  background: '#fff',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                }}
+              />
+            ) : (
+              <div
+                className="certificate-sheet"
+                style={{
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: '#6b7280',
+                  fontSize: 16,
+                }}
+              >
+                {isRenderingPreview ? T.rendering : T.preparing}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'fixed',
+            left: '-20000px',
+            top: 0,
+            width: ARTBOARD_WIDTH,
+            height: ARTBOARD_HEIGHT,
+            pointerEvents: 'none',
+          }}
+        >
           <CertBody
-            fullName={fullName} courseText={courseText}
-            formattedDate={formattedDate} certNo={T.certNo}
-            signatureUrl={signatureUrl} line1={T.line1}
-            recLine={T.recLine} conf={T.conf}
-            BLUE={BLUE} BLUE_LT={BLUE_LT} TEXT_DARK={TEXT_DARK} TEXT_MID={TEXT_MID}
-            screen
+            ref={certificateRef}
+            fullName={fullName}
+            courseText={courseText}
+            formattedDate={formattedDate}
+            certNo={T.certNo}
+            signatureUrl={signatureUrl}
+            line1={T.line1}
+            recLine={T.recLine}
+            conf={T.conf}
+            BLUE={BLUE}
+            BLUE_LT={BLUE_LT}
+            TEXT_DARK={TEXT_DARK}
+            TEXT_MID={TEXT_MID}
           />
         </div>
-      </div>
-
-      {/* ── Print version ── */}
-      <div className="cert-wrap" style={{ display:'none' }}>
-        <CertBody
-          fullName={fullName} courseText={courseText}
-          formattedDate={formattedDate} certNo={T.certNo}
-          signatureUrl={signatureUrl} line1={T.line1}
-          recLine={T.recLine} conf={T.conf}
-          BLUE={BLUE} BLUE_LT={BLUE_LT} TEXT_DARK={TEXT_DARK} TEXT_MID={TEXT_MID}
-        />
       </div>
     </>
   )
 }
 
-function CertBody({
-  fullName, courseText, formattedDate, certNo, signatureUrl,
-  line1, recLine, conf, BLUE, BLUE_LT, TEXT_DARK, TEXT_MID, screen: isScreen,
-}: {
-  fullName: string; courseText: string; formattedDate: string; certNo: string
-  signatureUrl?: string; line1: string; recLine: string; conf: string
-  BLUE: string; BLUE_LT: string; TEXT_DARK: string; TEXT_MID: string
-  screen?: boolean
-}) {
-  const S = isScreen
-    ? { w:1060, h:750, logo:70, emblem:360, name:42, line1:16, rec:15, title:24, conf:15, date:15, certno:12, sigImg:48, sigName:13, sigSub:12, sigOrg:11, gap:{ a:12, b:16, c:20, d:6, e:28, f:6, g:6 } }
-    : { w:0,    h:0,   logo:70, emblem:360, name:42, line1:16, rec:15, title:24, conf:15, date:15, certno:12, sigImg:48, sigName:13, sigSub:12, sigOrg:11, gap:{ a:12, b:16, c:20, d:6, e:28, f:6, g:6 } }
-
-  const container: React.CSSProperties = isScreen ? {
-    width: S.w, height: S.h,
-    position: 'relative',
-    backgroundColor: '#fff',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-    fontFamily: 'Roboto, Arial, sans-serif',
-    overflow: 'hidden',
-    flexShrink: 0,
-  } : {
-    width: '297mm', height: '210mm',
-    position: 'fixed', top:0, left:0,
-    backgroundColor: '#fff',
-    fontFamily: 'Roboto, Arial, sans-serif',
-    overflow: 'hidden',
-  }
-
+const CertBody = forwardRef<HTMLDivElement, CertBodyProps>(function CertBody(
+  {
+    fullName,
+    courseText,
+    formattedDate,
+    certNo,
+    signatureUrl,
+    line1,
+    recLine,
+    conf,
+    BLUE,
+    BLUE_LT,
+    TEXT_DARK,
+    TEXT_MID,
+  },
+  ref
+) {
   return (
-    <div style={container}>
-
-      <div style={{ position:'absolute', inset:12, border:`2.5px solid ${BLUE}`, zIndex:10, pointerEvents:'none' }} />
-      <div style={{ position:'absolute', inset:18, border:`1px solid ${BLUE_LT}`, zIndex:10, pointerEvents:'none' }} />
+    <div ref={ref} className="certificate-sheet">
+      <div
+        style={{
+          position: 'absolute',
+          inset: 14,
+          border: `3px solid ${BLUE}`,
+          zIndex: 10,
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 21,
+          border: `1px solid ${BLUE_LT}`,
+          zIndex: 10,
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="cert-emblem" src="/un-emblem-light.png" alt="" aria-hidden style={{
-        position:'absolute', top:'50%', left:'50%',
-        transform:'translate(-50%,-50%)',
-        width: isScreen ? S.emblem : undefined,
-        height: isScreen ? S.emblem : undefined,
-        opacity: 0.60, zIndex:1, pointerEvents:'none',
-      }} />
+      <img
+        src="/un-emblem-light.png"
+        alt=""
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 470,
+          height: 470,
+          opacity: 0.32,
+          zIndex: 1,
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="cert-logo" src="/insarag-logo-blue.svg" alt="INSARAG" style={{
-        position:'absolute', top: isScreen ? 36 : 24, right: isScreen ? 44 : 30,
-        height: isScreen ? S.logo : undefined,
-        width:'auto', zIndex:5,
-      }} />
+      <img
+        src="/insarag-logo-blue.svg"
+        alt="INSARAG"
+        style={{
+          position: 'absolute',
+          top: 44,
+          right: 52,
+          height: 74,
+          width: 'auto',
+          zIndex: 5,
+        }}
+      />
 
-      <div style={{
-        position:'absolute', top:0, left:0, right:0, bottom:0,
-        display:'flex', flexDirection:'column',
-        alignItems:'center', justifyContent:'center',
-        textAlign:'center',
-        padding: isScreen ? '40px 80px 130px' : '28mm 20mm 36mm',
-        zIndex:3,
-      }}>
-        <p className="cert-line1" style={{ fontSize: isScreen ? S.line1 : undefined, fontWeight:300, color:TEXT_MID, margin:`0 0 ${isScreen ? 12 : 10}px`, lineHeight:1.4 }}>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          padding: '120px 110px 160px',
+          zIndex: 3,
+        }}
+      >
+        <p
+          style={{
+            fontSize: 24,
+            fontWeight: 300,
+            color: TEXT_MID,
+            margin: '0 0 8px',
+            lineHeight: 1.4,
+          }}
+        >
           {line1}
         </p>
-        <h1 className="cert-name" style={{ fontSize: isScreen ? S.name : undefined, fontWeight:700, color:TEXT_DARK, margin:`0 0 ${isScreen ? 16 : 12}px`, lineHeight:1.1, wordBreak:'break-word', maxWidth:'90%' }}>
+
+        <h1
+          style={{
+            fontSize: 64,
+            fontWeight: 700,
+            color: TEXT_DARK,
+            margin: '0 0 18px',
+            lineHeight: 1.1,
+            letterSpacing: '-0.008em',
+            wordBreak: 'break-word',
+            maxWidth: '90%',
+          }}
+        >
           {fullName}
         </h1>
-        <div className="cert-rule" style={{ width:'60%', height: isScreen ? 1.5 : undefined, background:BLUE, margin:`0 0 ${isScreen ? 20 : 16}px` }} />
-        <p className="cert-rec" style={{ fontSize: isScreen ? S.rec : undefined, fontWeight:300, color:TEXT_MID, margin:`0 0 ${isScreen ? 4 : 4}px`, lineHeight:1.5 }}>
+
+        <div
+          style={{
+            width: '48%',
+            height: 2,
+            background: BLUE,
+            margin: '0 0 26px',
+          }}
+        />
+
+        <p
+          style={{
+            fontSize: 21,
+            fontWeight: 300,
+            color: TEXT_MID,
+            margin: '0 0 6px',
+            lineHeight: 1.45,
+          }}
+        >
           {recLine}
         </p>
-        <p className="cert-title" style={{ fontSize: isScreen ? S.title : undefined, fontWeight:700, color:TEXT_DARK, margin:`0 0 ${isScreen ? 4 : 4}px`, lineHeight:1.4, maxWidth:'88%' }}>
+
+        <p
+          style={{
+            fontSize: 31,
+            fontWeight: 700,
+            color: TEXT_DARK,
+            margin: '0 0 6px',
+            lineHeight: 1.26,
+            maxWidth: '88%',
+          }}
+        >
           {courseText}
         </p>
-        <p className="cert-conf" style={{ fontSize: isScreen ? S.conf : undefined, fontWeight:300, color:TEXT_MID, margin:`0 0 ${isScreen ? 28 : 22}px`, lineHeight:1.5 }}>
+
+        <p
+          style={{
+            fontSize: 21,
+            fontWeight: 300,
+            color: TEXT_MID,
+            margin: '0 0 30px',
+            lineHeight: 1.45,
+          }}
+        >
           {conf}
         </p>
-        <p className="cert-date" style={{ fontSize: isScreen ? S.date : undefined, color:TEXT_MID, margin:`0 0 ${isScreen ? 6 : 4}px` }}>
+
+        <p
+          style={{
+            fontSize: 21,
+            color: TEXT_MID,
+            margin: '0 0 6px',
+            lineHeight: 1.35,
+          }}
+        >
           {formattedDate}
         </p>
-        <p className="cert-certno" style={{ fontSize: isScreen ? S.certno : undefined, fontWeight:300, color:TEXT_MID, margin:0 }}>
+
+        <p
+          style={{
+            fontSize: 17,
+            fontWeight: 300,
+            color: TEXT_MID,
+            margin: 0,
+            lineHeight: 1.35,
+          }}
+        >
           {certNo}
         </p>
       </div>
 
-      <div style={{
-        position:'absolute',
-        bottom: isScreen ? 44 : '8mm',
-        right:  isScreen ? 50 : '15mm',
-        width:  isScreen ? 220 : '18%',
-        textAlign:'center', zIndex:5,
-      }}>
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 36,
+          right: 68,
+          width: 275,
+          textAlign: 'center',
+          zIndex: 5,
+        }}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="cert-sig-img" src={signatureUrl || '/signature-stampa.png'} alt="Signature"
-          style={{ height: isScreen ? S.sigImg : undefined, display:'block', margin:'0 auto 6px' }} />
-        <div style={{ width:'100%', height:1, background:TEXT_DARK, marginBottom:6 }} />
-        <p className="cert-sig-name" style={{ fontSize: isScreen ? S.sigName : undefined, fontWeight:700, color:BLUE, margin:0 }}>Sebastian Rhodes Stampa</p>
-        <p className="cert-sig-sub"  style={{ fontSize: isScreen ? S.sigSub  : undefined, color:BLUE, margin:'2px 0 0' }}>Secretary INSARAG</p>
-        <p className="cert-sig-org"  style={{ fontSize: isScreen ? S.sigOrg  : undefined, fontWeight:300, color:BLUE, margin:'2px 0 0' }}>UN Office for the Coordination of</p>
-        <p className="cert-sig-org"  style={{ fontSize: isScreen ? S.sigOrg  : undefined, fontWeight:300, color:BLUE, margin:'1px 0 0' }}>Humanitarian Affairs (OCHA), Geneva</p>
+        <img
+          src={signatureUrl || '/signature-stampa.png'}
+          alt="Signature"
+          style={{
+            height: 62,
+            display: 'block',
+            margin: '0 auto 8px',
+            width: 'auto',
+          }}
+        />
+
+        <div
+          style={{
+            width: '100%',
+            height: 1,
+            background: TEXT_DARK,
+            marginBottom: 8,
+          }}
+        />
+
+        <p
+          style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: BLUE,
+            margin: 0,
+            lineHeight: 1.3,
+          }}
+        >
+          Sebastian Rhodes Stampa
+        </p>
+
+        <p
+          style={{
+            fontSize: 16,
+            color: BLUE,
+            margin: '4px 0 0',
+            lineHeight: 1.3,
+          }}
+        >
+          Secretary INSARAG
+        </p>
+
+        <p
+          style={{
+            fontSize: 14,
+            fontWeight: 300,
+            color: BLUE,
+            margin: '8px 0 0',
+            lineHeight: 1.3,
+          }}
+        >
+          UN Office for the Coordination of
+        </p>
+
+        <p
+          style={{
+            fontSize: 14,
+            fontWeight: 300,
+            color: BLUE,
+            margin: '2px 0 0',
+            lineHeight: 1.3,
+          }}
+        >
+          Humanitarian Affairs (OCHA), Geneva
+        </p>
       </div>
     </div>
   )
-}
+})
+
+CertBody.displayName = 'CertBody'
