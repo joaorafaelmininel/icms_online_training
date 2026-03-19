@@ -240,8 +240,8 @@ export default function CertificateClient({
       ? 'en reconocimiento por la exitosa finalización del Curso en el'
       : 'in recognition of the successful completion of the online course on the',
     conf: isEs
-      ? 'de conformidad con la Metodología y las Directrices de INSARAG e ICMS.'
-      : 'in accordance with INSARAG and ICMS Methodology and Guidelines.',
+      ? 'de conformidad con la Metodología y las Directrices de Coordinación USAR e INSARAG.'
+      : 'in accordance with USAR Coordination and INSARAG Methodology and Guidelines.',
     certNo: isEs
       ? `Certificado N.º: ${certNumber}`
       : `Certificate No.: ${certNumber}`,
@@ -520,9 +520,9 @@ const CertBody = forwardRef<HTMLDivElement, CertBodyProps>(function CertBody(
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: 470,
-          height: 470,
-          opacity: 0.32,
+          width: 500,
+          height: 500,
+          opacity: 0.60,
           zIndex: 1,
           pointerEvents: 'none',
         }}
@@ -572,7 +572,7 @@ const CertBody = forwardRef<HTMLDivElement, CertBodyProps>(function CertBody(
             fontSize: 64,
             fontWeight: 700,
             color: TEXT_DARK,
-            margin: '0 0 18px',
+            margin: '0 0 28px',
             lineHeight: 1.1,
             letterSpacing: '-0.008em',
             wordBreak: 'break-word',
@@ -587,7 +587,7 @@ const CertBody = forwardRef<HTMLDivElement, CertBodyProps>(function CertBody(
             width: '48%',
             height: 2,
             background: BLUE,
-            margin: '0 0 26px',
+            margin: '0 0 22px',
           }}
         />
 
