@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Link from "next/link";
@@ -6,6 +8,10 @@ import { landing, common } from "@/lib/i18n/translations";
 import HeroCarousel from "@/components/layout/HeroCarousel";
 
 export default async function HomePage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) redirect('/dashboard');
+
   const language = await getCurrentLanguage();
 
   return (
