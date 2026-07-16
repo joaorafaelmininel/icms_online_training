@@ -396,14 +396,45 @@ function SlideEditor({
     await saveContent(next)
   }
 
-  // Upload a single file and return its public URL
+  // Upload directly to Supabase Storage from the browser — bypasses Next.js body limit
   async function uploadFile(file: File, type: MediaType): Promise<string> {
-    const form = new FormData()
-    form.append('file', file); form.append('type', type); form.append('slideId', slide.id)
-    const res  = await fetch('/api/admin/slides/upload', { method: 'POST', body: form })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Upload failed')
-    return data.url
+    const { createBrowserClient } = await import('@supabase/ssr')
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    const BUCKET_MAP: Record<string, string> = {
+      image: 'slide-images',
+      video: 'slide-videos',
+      audio: 'slide-audios',
+    }
+
+    const bucket   = BUCKET_MAP[type]
+    const ext      = file.name.split('.').pop() || ''
+    const safeName = file.name
+      .replace(/\.[^/.]+$/, '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9-_]/g, '-')
+      .slice(0, 60)
+    const path = `${slide.id}/${Date.now()}-${safeName}.${ext}`
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(path, file, {
+        contentType:  file.type,
+        cacheControl: '3600',
+        upsert:       false,
+      })
+
+    if (error) throw new Error(error.message)
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path)
+
+    return publicUrl
   }
 
   // Image upload — single URL
