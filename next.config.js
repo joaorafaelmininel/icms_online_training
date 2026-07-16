@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    // Safety net: allow build even if some TS errors remain
-    // Can be set to false once all types are verified
     ignoreBuildErrors: true,
   },
   eslint: {
@@ -15,6 +13,12 @@ const nextConfig = {
         hostname: '**.supabase.co',
       },
     ],
+  },
+  // Allow large file uploads (videos/audio) — removes 4MB body limit
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '600mb',
+    },
   },
 };
 

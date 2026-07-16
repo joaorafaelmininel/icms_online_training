@@ -1,39 +1,48 @@
 // src/app/dashboard/layout.tsx
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { getCurrentLanguage } from '@/lib/i18n/language';
-import DashboardHeader from '@/components/layout/DashboardHeader';
-import Footer from '@/components/layout/Footer';
+import { ReactNode } from 'react'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { getCurrentLanguage } from '@/lib/i18n/language'
+import DashboardHeader from '@/components/layout/DashboardHeader'
+import Footer from '@/components/layout/Footer'
+
+type ProfileRow = {
+  first_name: string | null
+  last_name: string | null
+  email: string | null
+  avatar_url: string | null
+  user_role: 'student' | 'instructor' | 'admin' | null
+}
 
 export default async function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode
 }) {
-  const supabase = await createClient();
-  const language = await getCurrentLanguage();
+  const supabase = createClient()
+  const language = await getCurrentLanguage()
 
-  // Auth guard
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/auth');
+    redirect('/auth')
   }
 
-  // Obter perfil
-  const { data: profile } = await supabase
+  const profileResult = await supabase
     .from('profiles')
     .select('first_name, last_name, email, avatar_url, user_role')
     .eq('id', user.id)
-    .single();
+    .single()
+
+  const profile = profileResult.data as ProfileRow | null
 
   const userName = profile
     ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
-    : user.email?.split('@')[0] || 'User';
+    : user.email?.split('@')[0] || 'User'
 
-  const userEmail = profile?.email || user.email || '';
+  const userEmail = profile?.email || user.email || ''
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -43,10 +52,10 @@ export default async function DashboardLayout({
         userAvatar={profile?.avatar_url}
         language={language as 'en' | 'es'}
         userId={user.id}
-        userRole={(profile?.user_role as 'student' | 'instructor' | 'admin') || 'student'}
+        userRole={profile?.user_role || 'student'}
       />
       <main className="flex-1">{children}</main>
       <Footer />
     </div>
-  );
+  )
 }
