@@ -99,6 +99,16 @@ function Block({ block, lang }: { block: ContentBlock; lang: Lang }) {
         : (block as any).url_en || (block as any).url_es || (block as any).url || '';
       return <AudioMedia url={audioUrl} caption={loc(block.caption, lang)} />;
     }
+    case 'hotspot':
+      return (
+        <HotspotMedia
+          image={(block as any).image}
+          spots={(block as any).spots || []}
+          caption={loc((block as any).caption, lang)}
+          lang={lang}
+          phoneFrame={(block as any).phoneFrame === true}
+        />
+      );
     case 'list':
       return (
         <List
@@ -384,6 +394,150 @@ function Callout({
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HOTSPOT — image (optionally in phone frame) with numbered markers + side panel
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface HotspotSpot {
+  id: number;
+  x: number;
+  y: number;
+  title: { en: string; es: string };
+  text:  { en: string; es: string };
+}
+
+function HotspotMedia({
+  image, spots, caption, lang, phoneFrame,
+}: {
+  image: string;
+  spots: HotspotSpot[];
+  caption: string;
+  lang: Lang;
+  phoneFrame?: boolean;
+}) {
+  const [active, setActive] = useState<number | null>(null);
+  const activeSpot = spots.find(s => s.id === active);
+
+  const ImageWithMarkers = () => (
+    <div className="relative w-full h-full">
+      <img src={image} alt="" className="w-full h-full object-cover block" />
+      {spots.map(spot => (
+        <button
+          key={spot.id}
+          onClick={() => setActive(active === spot.id ? null : spot.id)}
+          style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
+          className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shadow-lg transition-all ${
+            active === spot.id
+              ? 'bg-[#0B4A7C] text-white scale-125 ring-2 ring-white ring-offset-1'
+              : 'bg-[#0B4A7C]/90 text-white hover:scale-110 hover:bg-[#0B4A7C]'
+          }`}
+        >
+          {/* Pulse ring on inactive */}
+          {active !== spot.id && (
+            <span className="absolute inline-flex h-full w-full rounded-full bg-[#0B4A7C]/40 animate-ping" />
+          )}
+          {spot.id}
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-100 shadow-sm">
+      <div className="flex flex-col lg:flex-row items-stretch gap-0">
+
+        {/* Left: image or phone mockup */}
+        <div className={`flex items-center justify-center bg-gray-50 ${phoneFrame ? 'p-6' : ''} lg:flex-1`}>
+          {phoneFrame ? (
+            /* Phone frame SVG wrapper */
+            <div className="relative mx-auto" style={{ width: 220 }}>
+              {/* Phone outer shell */}
+              <div className="relative rounded-[2.5rem] border-[8px] border-gray-800 bg-gray-800 shadow-2xl overflow-hidden"
+                style={{ paddingTop: '216%' }}>
+                {/* Status bar */}
+                <div className="absolute top-0 left-0 right-0 h-6 bg-gray-900 z-20 flex items-center justify-center">
+                  <div className="w-20 h-3 bg-gray-800 rounded-full" />
+                </div>
+                {/* Screen content */}
+                <div className="absolute inset-0 top-6 bottom-4 overflow-hidden z-10">
+                  <ImageWithMarkers />
+                </div>
+                {/* Home indicator */}
+                <div className="absolute bottom-1.5 left-0 right-0 flex justify-center z-20">
+                  <div className="w-16 h-1 bg-gray-600 rounded-full" />
+                </div>
+              </div>
+              {/* Side buttons */}
+              <div className="absolute -right-3 top-20 w-1.5 h-8 bg-gray-700 rounded-r-sm" />
+              <div className="absolute -left-3 top-16 w-1.5 h-6 bg-gray-700 rounded-l-sm" />
+              <div className="absolute -left-3 top-24 w-1.5 h-6 bg-gray-700 rounded-l-sm" />
+            </div>
+          ) : (
+            /* Regular image */
+            <div className="relative w-full bg-gray-900" style={{ minHeight: 260, maxHeight: 480 }}>
+              <ImageWithMarkers />
+            </div>
+          )}
+        </div>
+
+        {/* Right: content panel */}
+        <div className="lg:w-72 shrink-0 border-t border-gray-100 lg:border-t-0 lg:border-l bg-white flex flex-col">
+          {activeSpot ? (
+            <div className="p-5 flex-1">
+              <div className="flex items-start gap-3 mb-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0B4A7C] text-xs font-bold text-white">
+                  {activeSpot.id}
+                </span>
+                <h4 className="text-sm font-bold text-gray-900 leading-snug pt-0.5">
+                  {loc(activeSpot.title, lang)}
+                </h4>
+              </div>
+              <p className="text-sm leading-relaxed text-gray-600 pl-10">
+                {loc(activeSpot.text, lang)}
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 mb-3">
+                <svg className="h-6 w-6 text-[#0B4A7C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-gray-400">
+                {lang === 'es' ? 'Toca un marcador' : 'Tap a marker'}
+              </p>
+              <p className="text-xs text-gray-300 mt-1">
+                {lang === 'es' ? 'para ver más información' : 'to see more information'}
+              </p>
+            </div>
+          )}
+
+          {/* Spot navigation dots */}
+          {spots.length > 0 && (
+            <div className="border-t border-gray-100 p-3 flex justify-center gap-2">
+              {spots.map(s => (
+                <button key={s.id} onClick={() => setActive(active === s.id ? null : s.id)}
+                  className={`h-6 w-6 rounded-full text-[10px] font-bold transition-all ${
+                    active === s.id
+                      ? 'bg-[#0B4A7C] text-white scale-110'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
+                >{s.id}</button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {caption && (
+        <div className="border-t border-gray-100 bg-gray-50 px-5 py-2.5 text-center text-xs text-gray-400">
+          {caption}
+        </div>
+      )}
     </div>
   );
 }

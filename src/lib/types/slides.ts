@@ -53,6 +53,22 @@ export interface CalloutBlock {
   text: LocalizedField;
 }
 
+
+export interface HotspotSpot {
+  id: number;
+  x: number;          // % from left (0-100)
+  y: number;          // % from top (0-100)
+  title: LocalizedField;
+  text: LocalizedField;
+}
+
+export interface HotspotBlock {
+  type: 'hotspot';
+  image: string;
+  caption?: LocalizedField;
+  spots: HotspotSpot[];
+  phoneFrame?: boolean;
+}
 export type ContentBlock =
   | HeadingBlock
   | ParagraphBlock
@@ -60,7 +76,8 @@ export type ContentBlock =
   | VideoBlock
   | AudioBlock
   | ListBlock
-  | CalloutBlock;
+  | CalloutBlock
+  | HotspotBlock;
 
 // ─── Slide (from DB row) ────────────────────────────────────────────────────
 

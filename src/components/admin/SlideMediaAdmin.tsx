@@ -8,6 +8,14 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 type Lang = 'en' | 'es'
 interface LocalizedField { en: string; es: string }
 
+interface HotspotSpot {
+  id: number;
+  x: number;
+  y: number;
+  title: LocalizedField;
+  text: LocalizedField;
+}
+
 type ContentBlock =
   | { type: 'heading';   level?: number; text: LocalizedField }
   | { type: 'paragraph'; text: LocalizedField }
@@ -16,6 +24,7 @@ type ContentBlock =
   | { type: 'audio';     url_en: string; url_es: string; caption?: LocalizedField }
   | { type: 'list';      ordered?: boolean; items: LocalizedField[] }
   | { type: 'callout';   variant: string; title?: LocalizedField; text: LocalizedField }
+  | { type: 'hotspot';   image: string; caption?: LocalizedField; spots: HotspotSpot[]; phoneFrame?: boolean }
 
 interface SlideData {
   id: string
@@ -846,6 +855,7 @@ function ContentEditor({
     if (newType === 'heading')   newBlock = { type: 'heading',   level: 2, text: { en: '', es: '' } }
     else if (newType === 'list') newBlock = { type: 'list',      ordered: false, items: [{ en: '', es: '' }] }
     else if (newType === 'callout') newBlock = { type: 'callout', variant: 'info', title: { en: '', es: '' }, text: { en: '', es: '' } }
+    else if (newType === 'hotspot') newBlock = { type: 'hotspot', image: '', spots: [{ id: 1, x: 50, y: 50, title: { en: '', es: '' }, text: { en: '', es: '' } }] }
     else                         newBlock = { type: 'paragraph', text: { en: '', es: '' } }
     setLocalContent(prev => [...prev, newBlock])
     setAdding(false)
@@ -856,6 +866,7 @@ function ContentEditor({
     { value: 'paragraph', label: 'Paragraph', desc: 'Body text' },
     { value: 'list',      label: 'List',      desc: 'Bullet or numbered' },
     { value: 'callout',   label: 'Callout',   desc: 'Info / tip / warning' },
+    { value: 'hotspot',   label: 'Hotspot',   desc: 'Image with markers' },
   ] as const
 
   return (
@@ -956,13 +967,14 @@ function BlockEditor({
 }) {
   const isMedia = block.type === 'image' || block.type === 'video' || block.type === 'audio'
   if (isMedia) return null
+  if (block.type === 'hotspot') return <HotspotBlockEditor block={block as any} onChange={onChange as any} />
 
   const iCls = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
   const tCls = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20 resize-none"
   const lCls = "block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1"
 
   const BLOCK_LABELS: Record<string, string> = {
-    heading: 'Heading', paragraph: 'Paragraph', list: 'List', callout: 'Callout',
+    heading: 'Heading', paragraph: 'Paragraph', list: 'List', callout: 'Callout', hotspot: 'Hotspot',
   }
 
   const CALLOUT_CONFIGS = {
@@ -1094,6 +1106,212 @@ function BlockEditor({
           </>
         )}
 
+      </div>
+    </div>
+  )
+}
+
+// ─── Hotspot Block Editor ──────────────────────────────────────────────────────
+
+function HotspotBlockEditor({
+  block,
+  onChange,
+}: {
+  block: { type: 'hotspot'; image: string; caption?: LocalizedField; spots: HotspotSpot[]; phoneFrame?: boolean }
+  onChange: (b: any) => void
+}) {
+  const [activeSpot, setActiveSpot] = useState<number | null>(null)
+  const [uploading, setUploading]   = useState(false)
+  const [uploadMsg, setUploadMsg]   = useState<string | null>(null)
+  const imgRef = useRef<HTMLInputElement>(null)
+
+  const iCls = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
+  const lCls = "block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1"
+
+  async function handleImageUpload(file: File) {
+    setUploading(true); setUploadMsg(null)
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase  = createClient()
+      const ext       = file.name.split('.').pop() || 'png'
+      const safeName  = file.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9-_]/g, '-').slice(0, 60)
+      const path      = `hotspot/${Date.now()}-${safeName}.${ext}`
+      const { data, error } = await supabase.storage.from('slide-images').upload(path, file, { contentType: file.type, upsert: false })
+      if (error) throw new Error(error.message)
+      const { data: { publicUrl } } = supabase.storage.from('slide-images').getPublicUrl(data.path)
+      onChange({ ...block, image: publicUrl })
+      setUploadMsg('Image uploaded')
+    } catch (err: any) {
+      setUploadMsg(`Error: ${err.message}`)
+    } finally { setUploading(false) }
+  }
+
+  function addSpot() {
+    const nextId = (block.spots.length > 0 ? Math.max(...block.spots.map(s => s.id)) : 0) + 1
+    onChange({ ...block, spots: [...block.spots, { id: nextId, x: 50, y: 50, title: { en: '', es: '' }, text: { en: '', es: '' } }] })
+    setActiveSpot(nextId)
+  }
+
+  function removeSpot(id: number) {
+    onChange({ ...block, spots: block.spots.filter(s => s.id !== id) })
+    if (activeSpot === id) setActiveSpot(null)
+  }
+
+  function updateSpot(id: number, updates: Partial<HotspotSpot>) {
+    onChange({ ...block, spots: block.spots.map(s => s.id === id ? { ...s, ...updates } : s) })
+  }
+
+  const spot = block.spots.find(s => s.id === activeSpot)
+
+  return (
+    <div className="space-y-4 p-4">
+
+      {/* Image upload */}
+      <div>
+        <label className={lCls}>Background Image</label>
+        {block.image ? (
+          <div className="relative group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={block.image} alt="" className="w-full max-h-64 object-contain rounded-lg border border-slate-200 bg-slate-50" />
+            <button onClick={() => imgRef.current?.click()}
+              className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition text-white text-xs font-semibold">
+              Change image
+            </button>
+          </div>
+        ) : (
+          <div onClick={() => imgRef.current?.click()}
+            className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 py-8 hover:border-slate-300 hover:bg-slate-50 transition">
+            {uploading
+              ? <svg className="h-6 w-6 animate-spin text-[#0B4A7C]" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              : <p className="text-sm font-semibold text-slate-500">Click to upload background image</p>
+            }
+          </div>
+        )}
+        <input ref={imgRef} type="file" accept="image/*" className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = '' }} />
+        {uploadMsg && <p className="mt-1 text-xs text-emerald-600">{uploadMsg}</p>}
+      </div>
+
+      {/* Phone frame toggle */}
+      <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+        <div>
+          <p className="text-xs font-semibold text-slate-700">Phone Frame</p>
+          <p className="text-[10px] text-slate-400">Wrap image in a smartphone mockup</p>
+        </div>
+        <button
+          onClick={() => onChange({ ...block, phoneFrame: !block.phoneFrame })}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${block.phoneFrame ? 'bg-[#0B4A7C]' : 'bg-slate-300'}`}
+        >
+          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${block.phoneFrame ? 'translate-x-4' : 'translate-x-1'}`} />
+        </button>
+      </div>
+
+      {/* Hotspot preview with clickable markers */}
+      {block.image && (
+        <div>
+          <label className={lCls}>Marker Positions — click image to reposition selected marker</label>
+          <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-900"
+            onClick={e => {
+              if (!activeSpot) return
+              const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
+              const x = Math.round(((e.clientX - rect.left) / rect.width) * 100)
+              const y = Math.round(((e.clientY - rect.top) / rect.height) * 100)
+              updateSpot(activeSpot, { x, y })
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={block.image} alt="" className="w-full max-h-60 object-contain" style={{ cursor: activeSpot ? 'crosshair' : 'default' }} />
+            {block.spots.map(s => (
+              <button key={s.id} onClick={e => { e.stopPropagation(); setActiveSpot(activeSpot === s.id ? null : s.id) }}
+                style={{ left: `${s.x}%`, top: `${s.y}%` }}
+                className={`absolute -translate-x-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold transition ${
+                  activeSpot === s.id ? 'border-white bg-[#0B4A7C] text-white scale-125 ring-2 ring-blue-300' : 'border-white bg-[#0B4A7C]/80 text-white hover:scale-110'
+                }`}
+              >{s.id}</button>
+            ))}
+            {activeSpot && <p className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/70">Click on image to move marker {activeSpot}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Spot list */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className={lCls + " !mb-0"}>Markers ({block.spots.length})</label>
+          <button onClick={addSpot}
+            className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold text-white transition"
+            style={{ background: '#0B4A7C' }}>
+            {Icons.plus} Add marker
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {block.spots.map(s => (
+            <button key={s.id} onClick={() => setActiveSpot(activeSpot === s.id ? null : s.id)}
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold border-2 transition ${
+                activeSpot === s.id ? 'border-[#0B4A7C] bg-[#0B4A7C] text-white' : 'border-slate-300 bg-white text-slate-600 hover:border-[#0B4A7C]'
+              }`}
+            >{s.id}</button>
+          ))}
+        </div>
+
+        {/* Selected spot editor */}
+        {spot && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-600">Marker {spot.id}</span>
+              <button onClick={() => removeSpot(spot.id)} className="text-[10px] font-semibold text-red-400 hover:text-red-600">Remove</button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 w-3">X</label>
+                <input type="number" min={0} max={100} value={spot.x} className={iCls + " text-xs"}
+                  onChange={e => updateSpot(spot.id, { x: Number(e.target.value) })} />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 w-3">Y</label>
+                <input type="number" min={0} max={100} value={spot.y} className={iCls + " text-xs"}
+                  onChange={e => updateSpot(spot.id, { y: Number(e.target.value) })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className={lCls}>Title EN</label>
+                <input className={iCls} value={spot.title.en} placeholder="English title"
+                  onChange={e => updateSpot(spot.id, { title: { ...spot.title, en: e.target.value } })} />
+              </div>
+              <div>
+                <label className={lCls}>Title ES</label>
+                <input className={iCls} value={spot.title.es} placeholder="Título español"
+                  onChange={e => updateSpot(spot.id, { title: { ...spot.title, es: e.target.value } })} />
+              </div>
+              <div>
+                <label className={lCls}>Content EN</label>
+                <textarea rows={3} className={iCls.replace('text-sm', 'text-xs') + " resize-none"} value={spot.text.en} placeholder="English content"
+                  onChange={e => updateSpot(spot.id, { text: { ...spot.text, en: e.target.value } })} />
+              </div>
+              <div>
+                <label className={lCls}>Content ES</label>
+                <textarea rows={3} className={iCls.replace('text-sm', 'text-xs') + " resize-none"} value={spot.text.es} placeholder="Contenido español"
+                  onChange={e => updateSpot(spot.id, { text: { ...spot.text, es: e.target.value } })} />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Caption */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className={lCls}>Caption EN</label>
+          <input className={iCls} value={block.caption?.en || ''} placeholder="English caption"
+            onChange={e => onChange({ ...block, caption: { ...(block.caption || { en: '', es: '' }), en: e.target.value } })} />
+        </div>
+        <div>
+          <label className={lCls}>Caption ES</label>
+          <input className={iCls} value={block.caption?.es || ''} placeholder="Descripción español"
+            onChange={e => onChange({ ...block, caption: { ...(block.caption || { en: '', es: '' }), es: e.target.value } })} />
+        </div>
       </div>
     </div>
   )
