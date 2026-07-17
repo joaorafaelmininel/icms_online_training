@@ -5,16 +5,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-// Disable body size limit for large video/audio uploads
-export const config = {
-  api: {
-    bodyParser: false,
-    responseLimit: false,
-  },
-}
-
-// Also needed for App Router:
-export const maxDuration = 60  // seconds — Vercel Pro allows up to 300s
 export const dynamic = 'force-dynamic'
 
 const BUCKET_MAP: Record<string, string> = {
