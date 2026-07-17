@@ -424,7 +424,7 @@ function HotspotMedia({
 
   const ImageWithMarkers = () => (
     <div className="relative w-full h-full">
-      <img src={image} alt="" className="w-full h-full object-cover block" />
+      <img src={image} alt="" className="w-full h-full object-contain block bg-gray-50" />
       {spots.map(spot => (
         <button
           key={spot.id}
@@ -448,44 +448,38 @@ function HotspotMedia({
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-100 shadow-sm">
-      <div className="flex flex-col lg:flex-row items-stretch gap-0">
+      {/* Image + panel stacked vertically inside the media column */}
+      <div className="flex flex-col">
 
-        {/* Left: image or phone mockup */}
-        <div className={`flex items-center justify-center bg-gray-50 ${phoneFrame ? 'p-6' : ''} lg:flex-1`}>
+        {/* Image or phone mockup */}
+        <div className={`flex items-center justify-center bg-gray-50 ${phoneFrame ? 'p-6 py-8' : ''}`}>
           {phoneFrame ? (
-            /* Phone frame SVG wrapper */
-            <div className="relative mx-auto" style={{ width: 220 }}>
-              {/* Phone outer shell */}
+            <div className="relative mx-auto" style={{ width: 200 }}>
               <div className="relative rounded-[2.5rem] border-[8px] border-gray-800 bg-gray-800 shadow-2xl overflow-hidden"
                 style={{ paddingTop: '216%' }}>
-                {/* Status bar */}
                 <div className="absolute top-0 left-0 right-0 h-6 bg-gray-900 z-20 flex items-center justify-center">
                   <div className="w-20 h-3 bg-gray-800 rounded-full" />
                 </div>
-                {/* Screen content */}
                 <div className="absolute inset-0 top-6 bottom-4 overflow-hidden z-10">
                   <ImageWithMarkers />
                 </div>
-                {/* Home indicator */}
                 <div className="absolute bottom-1.5 left-0 right-0 flex justify-center z-20">
                   <div className="w-16 h-1 bg-gray-600 rounded-full" />
                 </div>
               </div>
-              {/* Side buttons */}
               <div className="absolute -right-3 top-20 w-1.5 h-8 bg-gray-700 rounded-r-sm" />
               <div className="absolute -left-3 top-16 w-1.5 h-6 bg-gray-700 rounded-l-sm" />
               <div className="absolute -left-3 top-24 w-1.5 h-6 bg-gray-700 rounded-l-sm" />
             </div>
           ) : (
-            /* Regular image */
-            <div className="relative w-full bg-gray-900" style={{ minHeight: 260, maxHeight: 480 }}>
+            <div className="relative w-full" style={{ minHeight: 200 }}>
               <ImageWithMarkers />
             </div>
           )}
         </div>
 
-        {/* Right: content panel */}
-        <div className="lg:w-72 shrink-0 border-t border-gray-100 lg:border-t-0 lg:border-l bg-white flex flex-col">
+        {/* Content panel below image */}
+        <div className="border-t border-gray-100 bg-white flex flex-col min-h-[120px]">
           {activeSpot ? (
             <div className="p-5 flex-1">
               <div className="flex items-start gap-3 mb-3">
