@@ -350,7 +350,7 @@ export default function ModuleViewerClient({
         <main className="relative flex flex-1 flex-col overflow-hidden">
           {/* Scrollable slide content */}
           <div ref={slideAreaRef} className="flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-8 sm:py-12 lg:px-10">
+            <div className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
               {currentSlide ? (
                 <SlideRenderer
                   content={currentSlide.content as ContentBlock[]}

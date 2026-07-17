@@ -28,6 +28,32 @@ export default function SlideRenderer({ content, layout, language }: Props) {
     );
   }
 
+  const textBlocks  = content.filter(b => ['heading','paragraph','list','callout'].includes(b.type));
+  const mediaBlocks = content.filter(b => ['image','video','audio'].includes(b.type));
+  const hasMedia    = mediaBlocks.length > 0;
+  const hasText     = textBlocks.length > 0;
+
+  // Two-column layout: text left, media right
+  if (hasText && hasMedia) {
+    return (
+      <div className="flex gap-8 lg:gap-12 items-start">
+        {/* Left: text content */}
+        <div className="flex-1 min-w-0 space-y-5">
+          {textBlocks.map((block, i) => (
+            <Block key={i} block={block} lang={language} />
+          ))}
+        </div>
+        {/* Right: media */}
+        <div className="w-[45%] shrink-0 space-y-4">
+          {mediaBlocks.map((block, i) => (
+            <Block key={i} block={block} lang={language} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Text only or media only — single column
   return (
     <div className="space-y-6">
       {content.map((block, i) => (
