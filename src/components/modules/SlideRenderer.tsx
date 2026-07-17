@@ -55,16 +55,24 @@ function Block({ block, lang }: { block: ContentBlock; lang: Lang }) {
           caption={loc(block.caption, lang)}
         />
       );
-    case 'video':
+    case 'video': {
+      const videoUrl = (block as any).url_en && (block as any).url_es
+        ? (lang === 'es' ? (block as any).url_es : (block as any).url_en)
+        : (block as any).url_en || (block as any).url_es || (block as any).url || '';
       return (
         <VideoMedia
-          url={block.url}
+          url={videoUrl}
           poster={block.poster}
           caption={loc(block.caption, lang)}
         />
       );
-    case 'audio':
-      return <AudioMedia url={block.url} caption={loc(block.caption, lang)} />;
+    }
+    case 'audio': {
+      const audioUrl = (block as any).url_en && (block as any).url_es
+        ? (lang === 'es' ? (block as any).url_es : (block as any).url_en)
+        : (block as any).url_en || (block as any).url_es || (block as any).url || '';
+      return <AudioMedia url={audioUrl} caption={loc(block.caption, lang)} />;
+    }
     case 'list':
       return (
         <List
