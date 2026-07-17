@@ -398,11 +398,8 @@ function SlideEditor({
 
   // Upload directly to Supabase Storage from the browser — bypasses Next.js body limit
   async function uploadFile(file: File, type: MediaType): Promise<string> {
-    const { createBrowserClient } = await import('@supabase/ssr')
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const { createClient } = await import('@/lib/supabase/client')
+    const supabase = createClient()
 
     const BUCKET_MAP: Record<string, string> = {
       image: 'slide-images',
