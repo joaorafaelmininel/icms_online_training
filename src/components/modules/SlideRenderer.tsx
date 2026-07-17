@@ -29,7 +29,7 @@ export default function SlideRenderer({ content, layout, language }: Props) {
   }
 
   const textBlocks  = content.filter(b => ['heading','paragraph','list','callout'].includes(b.type));
-  const mediaBlocks = content.filter(b => ['image','video','audio'].includes(b.type));
+  const mediaBlocks = content.filter(b => ['image','video','audio','hotspot'].includes(b.type));
   const hasMedia    = mediaBlocks.length > 0;
   const hasText     = textBlocks.length > 0;
 
