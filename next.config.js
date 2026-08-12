@@ -26,6 +26,14 @@ const nextConfig = {
     outputFileTracingIncludes: {
       '/api/certificates/pdf': ['./node_modules/@sparticuz/chromium/bin/**'],
     },
+    // Keep these out of the webpack bundle for route handlers — webpack
+    // rewrites module locations, which breaks @sparticuz/chromium's
+    // __dirname-relative lookup of its own binary files even when
+    // outputFileTracingIncludes copies them into the deployment. Leaving
+    // them external preserves normal node_modules layout at runtime so
+    // that lookup keeps working. (Next 14 key — renamed to the top-level
+    // `serverExternalPackages` in Next 15+.)
+    serverComponentsExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
   },
 };
 
