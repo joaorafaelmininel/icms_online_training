@@ -115,8 +115,16 @@ export default async function QuizPage({ params }: Props) {
 
   const moduleProgress = moduleProgressResult.data as ModuleProgressRow | null
 
+  // Slide count is derived from actual slide rows, not the stored `total_slides`
+  // counter on course_modules — stays correct as slides are added over time.
+  const { count: actualSlideCount } = await supabase
+    .from('module_slides')
+    .select('id', { count: 'exact', head: true })
+    .eq('module_id', mod.id)
+
+  const totalSlides = actualSlideCount ?? 0
   const completedSlides = moduleProgress?.completed_slides?.length ?? 0
-  const slidesComplete = completedSlides >= (mod.total_slides ?? 0)
+  const slidesComplete = completedSlides >= totalSlides
 
   if (!slidesComplete) {
     redirect(`/courses/${slug}/modules/${number}`)

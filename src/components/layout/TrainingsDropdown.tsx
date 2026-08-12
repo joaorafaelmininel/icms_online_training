@@ -26,8 +26,8 @@ const trainings: Training[] = [
   {
     id: 'icms-3-0',
     title: {
-      en: 'ICMS 3.0 Training',
-      es: 'Capacitación ICMS 3.0',
+      en: 'ICMS3.0 Training',
+      es: 'Capacitación ICMS3.0',
     },
     description: {
       en: 'Coordination and Management System',

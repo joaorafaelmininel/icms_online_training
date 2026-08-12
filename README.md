@@ -1,4 +1,4 @@
-# 🚀 ICMS 3.0 Platform - INSARAG Training
+# 🚀 ICMS3.0 Platform - INSARAG Training
 
 Plataforma de treinamento online para o INSARAG Coordination and Management System 3.0
 

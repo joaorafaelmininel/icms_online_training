@@ -37,7 +37,7 @@ export default function TermsPage() {
 
           <h2>2. Use of Platform</h2>
           <p>
-            The ICMS Learning Platform is designed to provide online training for INSARAG (International Search and Rescue Advisory Group) professionals on the ICMS 3.0 coordination and management system.
+            The ICMS Learning Platform is designed to provide online training for INSARAG (International Search and Rescue Advisory Group) professionals on the ICMS3.0 coordination and management system.
           </p>
           <p>You agree to:</p>
           <ul>

@@ -1,6 +1,7 @@
 // src/app/api/admin/slides/[slideId]/content/route.ts
 // GET: return slide content blocks
 // PATCH: add or replace a media block in the slide content array
+// DELETE: permanently remove the slide
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -116,4 +117,26 @@ export async function PATCH(
   }
 
   return NextResponse.json({ content: blocks })
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { slideId: string } }
+) {
+  const supabase = createClient()
+
+  if (!(await requireAdmin(supabase))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const deleteResult = await supabase
+    .from('module_slides')
+    .delete()
+    .eq('id', params.slideId)
+
+  if (deleteResult.error) {
+    return NextResponse.json({ error: deleteResult.error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
 }

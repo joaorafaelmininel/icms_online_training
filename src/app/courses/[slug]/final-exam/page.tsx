@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentLanguage } from '@/lib/i18n/language'
 import FinalExamClient from '@/components/courses/FinalExamClient'
-import type { Course } from '@/lib/types/database'
+import type { Course } from '@/lib/types/courses'
 import type { FinalExamClientQuestion } from '@/lib/types/finalExam'
 
 type Lang = 'en' | 'es'

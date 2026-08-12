@@ -28,8 +28,8 @@ const slides: Slide[] = [
   },
   {
     title: {
-      en: "ICMS 3.0 Online Training",
-      es: "Capacitación en Línea ICMS 3.0",
+      en: "ICMS3.0 Online Training",
+      es: "Capacitación en Línea ICMS3.0",
     },
     subtitle: {
       en: "Master the updated coordination and management system — 10 modules, self-paced",

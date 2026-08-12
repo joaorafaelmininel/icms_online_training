@@ -185,12 +185,14 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
   const [selectedSlide,   setSelectedSlide  ] = useState<SlideData  | null>(null)
   const [activeMediaType, setActiveMediaType] = useState<MediaType>('image')
   const [activeTab,       setActiveTab      ] = useState<EditorTab>('content')
+  const [creatingSlide,   setCreatingSlide  ] = useState(false)
+  const [createError,     setCreateError    ] = useState<string | null>(null)
 
   function pickCourse(course: CourseData) {
     setSelectedCourse(course); setSelectedModule(null); setSelectedSlide(null)
   }
   function pickModule(mod: ModuleData) {
-    setSelectedModule(mod); setSelectedSlide(null)
+    setSelectedModule(mod); setSelectedSlide(null); setCreateError(null)
   }
   function onSlideContentUpdated(slideId: string, newContent: ContentBlock[]) {
     setSelectedSlide(prev => prev?.id === slideId ? { ...prev, content: newContent } : prev)
@@ -201,6 +203,50 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
         module_slides: m.module_slides.map(s => s.id === slideId ? { ...s, content: newContent } : s),
       })),
     })
+  }
+
+  function onSlideDeleted(slideId: string) {
+    setSelectedSlide(prev => prev?.id === slideId ? null : prev)
+    setSelectedModule(prev => prev
+      ? { ...prev, module_slides: prev.module_slides.filter(s => s.id !== slideId) }
+      : prev
+    )
+    setSelectedCourse(prev => !prev ? prev : {
+      ...prev,
+      course_modules: prev.course_modules.map(m => ({
+        ...m,
+        module_slides: m.module_slides.filter(s => s.id !== slideId),
+      })),
+    })
+  }
+
+  async function handleCreateSlide() {
+    if (!selectedModule) return
+    setCreatingSlide(true); setCreateError(null)
+    try {
+      const res  = await fetch('/api/admin/slides/create', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduleId: selectedModule.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to create slide')
+
+      const newSlide = data as SlideData
+      setSelectedModule(prev => prev ? { ...prev, module_slides: [...prev.module_slides, newSlide] } : prev)
+      setSelectedCourse(prev => !prev ? prev : {
+        ...prev,
+        course_modules: prev.course_modules.map(m => m.id === selectedModule.id
+          ? { ...m, module_slides: [...m.module_slides, newSlide] }
+          : m
+        ),
+      })
+      setSelectedSlide(newSlide)
+      setActiveTab('content')
+    } catch (err: any) {
+      setCreateError(err.message)
+    } finally {
+      setCreatingSlide(false)
+    }
   }
 
   return (
@@ -257,7 +303,9 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
 
                 {selectedCourse?.id === course.id && (
                   <div className="border-b border-slate-100 pb-1">
-                    {course.course_modules.map(mod => (
+                    {/* Read from selectedCourse (reactive), not the static `course` prop —
+                        this is what handleCreateSlide/onSlideDeleted actually update. */}
+                    {selectedCourse.course_modules.map(mod => (
                       <button key={mod.id} onClick={() => pickModule(mod)}
                         className={`flex w-full items-center gap-2 py-2 pl-9 pr-4 text-left transition ${
                           selectedModule?.id === mod.id
@@ -270,7 +318,7 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
                         </span>
                         <span className="flex-1 text-xs leading-snug">{loc(mod.title)}</span>
                         <span className={`text-[10px] font-medium ${selectedModule?.id === mod.id ? 'text-[#0B4A7C]/60' : 'text-slate-300'}`}>
-                          {mod.total_slides}
+                          {mod.module_slides.length}
                         </span>
                       </button>
                     ))}
@@ -287,6 +335,24 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
               {selectedModule ? `M${selectedModule.module_number} — Slides` : 'Slides'}
             </p>
+            {selectedModule && (
+              <button
+                onClick={handleCreateSlide}
+                disabled={creatingSlide}
+                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                {creatingSlide ? (
+                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : Icons.plus}
+                New Slide
+              </button>
+            )}
+            {createError && (
+              <p className="mt-1.5 text-[10px] text-red-500">{createError}</p>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto py-1">
             {!selectedModule ? (
@@ -346,6 +412,7 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               onContentUpdated={onSlideContentUpdated}
+              onDeleted={onSlideDeleted}
             />
           )}
         </main>
@@ -357,14 +424,17 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
 // ─── Slide Editor ─────────────────────────────────────────────────────────────
 
 function SlideEditor({
-  slide, activeMediaType, setActiveMediaType, activeTab, setActiveTab, onContentUpdated,
+  slide, activeMediaType, setActiveMediaType, activeTab, setActiveTab, onContentUpdated, onDeleted,
 }: {
   slide: SlideData; activeMediaType: MediaType; setActiveMediaType: (t: MediaType) => void
   activeTab: EditorTab; setActiveTab: (t: EditorTab) => void
   onContentUpdated: (id: string, content: ContentBlock[]) => void
+  onDeleted: (id: string) => void
 }) {
   const [content,       setContent      ] = useState<ContentBlock[]>(slide.content || [])
   const [uploadMsg,     setUploadMsg    ] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [deleting,      setDeleting     ] = useState(false)
+  const [deleteError,   setDeleteError  ] = useState<string | null>(null)
   const [captionEn,     setCaptionEn    ] = useState('')
   const [captionEs,     setCaptionEs    ] = useState('')
   // Per-lang upload state for video/audio
@@ -378,7 +448,24 @@ function SlideEditor({
   const fileEsRef  = useRef<HTMLInputElement>(null)
   const fileImgRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { setContent(slide.content || []) }, [slide.id])
+  useEffect(() => { setContent(slide.content || []); setDeleteError(null) }, [slide.id])
+
+  async function handleDeleteSlide() {
+    const label = loc(slide.title) || `Slide ${slide.slide_number}`
+    if (!window.confirm(`Delete "${label}"? This permanently removes the slide and its content — this cannot be undone.`)) {
+      return
+    }
+    setDeleting(true); setDeleteError(null)
+    try {
+      const res = await fetch(`/api/admin/slides/${slide.id}/content`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to delete slide')
+      onDeleted(slide.id)
+    } catch (err: any) {
+      setDeleteError(err.message)
+      setDeleting(false)
+    }
+  }
 
   const mediaBlocks = content.filter(b => b.type === 'image' || b.type === 'video' || b.type === 'audio')
 
@@ -499,12 +586,27 @@ function SlideEditor({
 
       {/* Slide header */}
       <div className="border-b border-slate-200 bg-white px-6 py-3">
-        <div className="flex items-baseline gap-2">
-          <span className="text-xs font-bold tabular-nums text-slate-300">
-            {String(slide.slide_number).padStart(2, '0')}
-          </span>
-          <h2 className="text-sm font-semibold text-slate-800">{loc(slide.title)}</h2>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-baseline gap-2">
+            <span className="text-xs font-bold tabular-nums text-slate-300">
+              {String(slide.slide_number).padStart(2, '0')}
+            </span>
+            <h2 className="text-sm font-semibold text-slate-800">{loc(slide.title)}</h2>
+          </div>
+          <button onClick={handleDeleteSlide} disabled={deleting}
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-red-500 transition hover:bg-red-50 disabled:opacity-50">
+            {deleting ? (
+              <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : Icons.trash}
+            {deleting ? 'Deleting...' : 'Delete Slide'}
+          </button>
         </div>
+        {deleteError && (
+          <p className="mt-1.5 text-xs text-red-600">{deleteError}</p>
+        )}
       </div>
 
       {/* Tabs */}

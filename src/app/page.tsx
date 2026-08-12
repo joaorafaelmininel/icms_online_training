@@ -172,7 +172,7 @@ export default async function HomePage() {
         {language === "en" ? "Available Courses" : "Cursos Disponibles"}
       </h2>
 
-      {/* ICMS 3.0 */}
+      {/* ICMS3.0 */}
       <div className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-xl">
         <div className="h-2 w-full bg-gradient-to-r from-[#0B4A7C] to-[#1a6fa3]" />
         <div className="p-6">
@@ -187,11 +187,11 @@ export default async function HomePage() {
           <h3 className="text-lg font-extrabold text-gray-900">
             {language === "en" ? "INSARAG Coordination and Management System" : "Sistema de Coordinación y Gestión INSARAG"}
           </h3>
-          <p className="mt-0.5 text-sm font-semibold text-[#0B4A7C]">ICMS 3.0</p>
+          <p className="mt-0.5 text-sm font-semibold text-[#0B4A7C]">ICMS3.0</p>
           <p className="mt-2 text-sm leading-relaxed text-gray-600">
             {language === "en"
-              ? "Comprehensive introduction to ICMS 3.0 — covering the RDC, UCC, OSOCC, and the full coordination architecture for international USAR responses."
-              : "Introducción integral al ICMS 3.0 — cubre el RDC, UCC, OSOCC y la arquitectura completa de coordinación para respuestas USAR internacionales."}
+              ? "Comprehensive introduction to ICMS3.0 — covering the RDC, UCC, OSOCC, and the full coordination architecture for international USAR responses."
+              : "Introducción integral al ICMS3.0 — cubre el RDC, UCC, OSOCC y la arquitectura completa de coordinación para respuestas USAR internacionales."}
           </p>
           <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-500">
             <span>⏱ {language === "en" ? "8 hours" : "8 horas"}</span>
@@ -261,8 +261,8 @@ export default async function HomePage() {
         </p>
         <p>
           {language === "en"
-            ? "As an initial step, the platform hosts the ICMS 3.0 online training, supporting the introduction and operational understanding of the updated system. This course is part of the broader capacity-building efforts accompanying the implementation of ICMS 3.0 and aims to ensure a consistent baseline of knowledge across the INSARAG community."
-            : "Como paso inicial, la plataforma alberga la capacitación en línea de ICMS 3.0, apoyando la introducción y comprensión operativa del sistema actualizado. Este curso es parte de los esfuerzos más amplios de desarrollo de capacidades que acompañan la implementación de ICMS 3.0."}
+            ? "As an initial step, the platform hosts the ICMS3.0 online training, supporting the introduction and operational understanding of the updated system. This course is part of the broader capacity-building efforts accompanying the implementation of ICMS3.0 and aims to ensure a consistent baseline of knowledge across the INSARAG community."
+            : "Como paso inicial, la plataforma alberga la capacitación en línea de ICMS3.0, apoyando la introducción y comprensión operativa del sistema actualizado. Este curso es parte de los esfuerzos más amplios de desarrollo de capacidades que acompañan la implementación de ICMS3.0."}
         </p>
         <p>
           {language === "en"

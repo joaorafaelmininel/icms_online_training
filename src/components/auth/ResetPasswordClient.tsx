@@ -1,7 +1,6 @@
 'use client'
 
 import { createBrowserClient } from '@supabase/ssr'
-import { createInitialRouterState } from 'next/dist/client/components/router-reducer/create-initial-router-state'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'

@@ -82,7 +82,7 @@ function normalizeModule(mod: RawModule): AdminModule {
     id: mod.id,
     module_number: mod.module_number,
     title: normalizeLocalizedField(mod.title),
-    total_slides: mod.total_slides ?? slides.length,
+    total_slides: slides.length,
     module_slides: slides,
   } as AdminModule
 }

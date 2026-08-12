@@ -48,19 +48,26 @@ export async function enrollInCourse(courseId: string) {
   // Inicializar progresso do primeiro módulo
   const { data: firstModule } = await supabase
     .from('course_modules')
-    .select('id, total_slides')
+    .select('id')
     .eq('course_id', courseId)
     .eq('module_number', 1)
     .single();
 
   if (firstModule && enrollment) {
+    // Slide count is derived from actual slide rows, not a stored counter —
+    // stays correct as slides are added/removed later.
+    const { count: slideCount } = await supabase
+      .from('module_slides')
+      .select('id', { count: 'exact', head: true })
+      .eq('module_id', firstModule.id);
+
     await supabase.from('user_module_progress').insert({
       user_id: user.id,
       course_id: courseId,
       module_id: firstModule.id,
       enrollment_id: enrollment.id,
       current_slide: 1,
-      total_slides: firstModule.total_slides || 0,
+      total_slides: slideCount ?? 0,
       is_completed: false,
       quiz_passed: false,
       quiz_attempts_count: 0,

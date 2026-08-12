@@ -17,9 +17,9 @@ import type {
 const i18n = {
   en: {
     title: 'Final Exam',
-    subtitle: 'ICMS 3.0 Certification Exam',
+    subtitle: 'ICMS3.0 Certification Exam',
     description:
-      'This exam covers all 10 modules of the ICMS 3.0 training course. You must score at least {score}% to pass and earn your certificate.',
+      'This exam covers all 10 modules of the ICMS3.0 training course. You must score at least {score}% to pass and earn your certificate.',
     questions: 'Questions',
     passingLabel: 'Passing',
     attemptsLabel: 'Remaining',
@@ -45,7 +45,7 @@ const i18n = {
     confirm: 'Submit',
     congratulations: '🎓 Congratulations!',
     examPassed:
-      'You passed the ICMS 3.0 Final Exam and earned your certificate!',
+      'You passed the ICMS3.0 Final Exam and earned your certificate!',
     examFailed: 'Not Quite There Yet',
     tryAgain: 'Review the modules and try again. You can do it!',
     score: 'Score',
@@ -66,9 +66,9 @@ const i18n = {
   },
   es: {
     title: 'Examen Final',
-    subtitle: 'Examen de Certificación ICMS 3.0',
+    subtitle: 'Examen de Certificación ICMS3.0',
     description:
-      'Este examen cubre los 10 módulos del curso ICMS 3.0. Debes obtener al menos {score}% para aprobar y obtener tu certificado.',
+      'Este examen cubre los 10 módulos del curso ICMS3.0. Debes obtener al menos {score}% para aprobar y obtener tu certificado.',
     questions: 'Preguntas',
     passingLabel: 'Mínimo',
     attemptsLabel: 'Restantes',
@@ -94,7 +94,7 @@ const i18n = {
     confirm: 'Enviar',
     congratulations: '🎓 ¡Felicitaciones!',
     examPassed:
-      '¡Aprobaste el Examen Final de ICMS 3.0 y obtuviste tu certificado!',
+      '¡Aprobaste el Examen Final de ICMS3.0 y obtuviste tu certificado!',
     examFailed: 'Casi lo Logras',
     tryAgain: 'Revisa los módulos e inténtalo de nuevo. ¡Tú puedes!',
     score: 'Puntuación',

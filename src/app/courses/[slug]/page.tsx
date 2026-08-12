@@ -86,7 +86,24 @@ export default async function CoursePage({ params }: Props) {
     .eq('course_id', course.id)
     .order('module_number', { ascending: true })
 
-  const modules = (modulesResult.data || []) as CourseModule[]
+  const rawModules = (modulesResult.data || []) as CourseModule[]
+
+  // Slide count is derived from actual slide rows, not the stored `total_slides`
+  // counter on course_modules — stays correct as slides are added over time.
+  const slidesResult = await supabase
+    .from('module_slides')
+    .select('module_id')
+    .eq('course_id', course.id)
+
+  const slideCountByModule = new Map<string, number>()
+  for (const row of (slidesResult.data || []) as { module_id: string }[]) {
+    slideCountByModule.set(row.module_id, (slideCountByModule.get(row.module_id) ?? 0) + 1)
+  }
+
+  const modules = rawModules.map((m) => ({
+    ...m,
+    total_slides: slideCountByModule.get(m.id) ?? 0,
+  }))
 
   const enrollmentResult = await supabase
     .from('course_enrollments')

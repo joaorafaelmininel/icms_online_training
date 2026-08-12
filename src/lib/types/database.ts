@@ -1,5 +1,5 @@
 // src/lib/types/database.ts
-// Database types for ICMS 3.0 Platform - Schema v6.0.0
+// Database types for ICMS3.0 Platform - Schema v6.0.0
 
 export type Language = 'en' | 'es';
 
