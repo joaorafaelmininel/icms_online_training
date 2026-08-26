@@ -1,7 +1,7 @@
 // src/components/modules/SlideRenderer.tsx
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, type CSSProperties } from 'react';
 import type { ContentBlock, SlideLayout } from '@/lib/types/slides';
 
 type Lang = 'en' | 'es';
@@ -344,27 +344,49 @@ function List({ items, ordered }: { items: string[]; ordered: boolean }) {
 
 const calloutStyles = {
   tip: {
-    bg: 'bg-green-50',
-    border: 'border-green-200',
-    iconBg: 'bg-green-100',
-    title: 'text-green-800',
-    icon: '💡',
+    accent: '#0F7A5C',
+    bg: 'bg-emerald-50/60',
   },
   warning: {
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    iconBg: 'bg-amber-100',
-    title: 'text-amber-800',
-    icon: '⚠️',
+    accent: '#B45309',
+    bg: 'bg-amber-50/60',
   },
   info: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    iconBg: 'bg-blue-100',
-    title: 'text-blue-800',
-    icon: 'ℹ️',
+    accent: '#0B4A7C',
+    bg: 'bg-blue-50/60',
   },
 };
+
+function CalloutIcon({ variant, style }: { variant: string; style?: CSSProperties }) {
+  const common = {
+    className: 'mt-0.5 h-5 w-5 shrink-0',
+    style,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.5,
+  };
+
+  if (variant === 'tip') {
+    return (
+      <svg {...common}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+      </svg>
+    );
+  }
+  if (variant === 'warning') {
+    return (
+      <svg {...common}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+    </svg>
+  );
+}
 
 function Callout({
   variant,
@@ -378,21 +400,20 @@ function Callout({
   const s = calloutStyles[variant as keyof typeof calloutStyles] || calloutStyles.info;
 
   return (
-    <div className={`rounded-xl border ${s.border} ${s.bg} p-4 sm:p-5`}>
-      <div className="flex items-start gap-3">
-        <span
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${s.iconBg} text-base`}
-        >
-          {s.icon}
-        </span>
-        <div className="min-w-0 flex-1">
-          {title && (
-            <p className={`mb-1 text-sm font-bold ${s.title}`}>{title}</p>
-          )}
-          <p className="text-sm leading-relaxed text-gray-600 sm:text-[15px] sm:leading-relaxed">
-            {text}
+    <div
+      className={`flex items-start gap-3 rounded-md ${s.bg} py-4 pl-4 pr-5 sm:py-5 sm:pl-5`}
+      style={{ borderLeft: `3px solid ${s.accent}` }}
+    >
+      <CalloutIcon variant={variant} style={{ color: s.accent }} />
+      <div className="min-w-0 flex-1">
+        {title && (
+          <p className="mb-1 text-sm font-semibold" style={{ color: s.accent }}>
+            {title}
           </p>
-        </div>
+        )}
+        <p className="text-sm leading-relaxed text-gray-600 sm:text-[15px] sm:leading-relaxed">
+          {text}
+        </p>
       </div>
     </div>
   );
