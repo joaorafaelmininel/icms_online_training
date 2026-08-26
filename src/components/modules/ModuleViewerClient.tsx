@@ -50,7 +50,7 @@ const i18n = {
     of: 'of',
     prev: 'Previous',
     next: 'Next',
-    slideIndex: 'Slide Index',
+    slideIndex: 'Module Progress',
     hideMenu: 'Hide slide menu',
     showMenu: 'Show slide menu',
     slides: 'slides',
@@ -75,7 +75,7 @@ const i18n = {
     of: 'de',
     prev: 'Anterior',
     next: 'Siguiente',
-    slideIndex: 'Índice de Diapositivas',
+    slideIndex: 'Progreso del Módulo',
     hideMenu: 'Ocultar menú de diapositivas',
     showMenu: 'Mostrar menú de diapositivas',
     slides: 'diapositivas',
@@ -210,14 +210,18 @@ export default function ModuleViewerClient({
     <div className="flex h-[100dvh] flex-col bg-gray-50">
       {/* ── TOP BAR ──────────────────────────────────────────────────────────── */}
       <header className="z-40 flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2 sm:gap-4 sm:px-5 sm:py-2.5">
-        {/* Back button */}
-        <a
-          href={`/courses/${course.slug}`}
-          className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 sm:px-3 sm:text-sm"
+        {/* Sidebar toggle */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className={`shrink-0 rounded-lg p-2 transition hover:bg-gray-100 ${
+            sidebarOpen ? 'text-[#0B4A7C]' : 'text-gray-400 hover:text-gray-600'
+          }`}
+          title={sidebarOpen ? t.hideMenu : t.showMenu}
+          aria-label={sidebarOpen ? t.hideMenu : t.showMenu}
+          aria-pressed={sidebarOpen}
         >
-          <ChevronLeftIcon />
-          <span className="hidden sm:inline">{t.backToCourse}</span>
-        </a>
+          <SidebarIcon open={sidebarOpen} />
+        </button>
 
         {/* Module title (center) */}
         <div className="min-w-0 flex-1 text-center">
@@ -229,7 +233,7 @@ export default function ModuleViewerClient({
           </h1>
         </div>
 
-        {/* Right: progress + sidebar toggle */}
+        {/* Right: progress + back to course */}
         <div className="flex shrink-0 items-center gap-2">
           {/* Progress bar (desktop) */}
           <div className="hidden items-center gap-2 sm:flex">
@@ -244,18 +248,14 @@ export default function ModuleViewerClient({
             </span>
           </div>
 
-          {/* Sidebar toggle */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`rounded-lg p-2 transition hover:bg-gray-100 ${
-              sidebarOpen ? 'text-[#0B4A7C]' : 'text-gray-400 hover:text-gray-600'
-            }`}
-            title={sidebarOpen ? t.hideMenu : t.showMenu}
-            aria-label={sidebarOpen ? t.hideMenu : t.showMenu}
-            aria-pressed={sidebarOpen}
+          {/* Back button */}
+          <a
+            href={`/courses/${course.slug}`}
+            className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 sm:px-3 sm:text-sm"
           >
-            <SidebarIcon open={sidebarOpen} />
-          </button>
+            <ChevronLeftIcon />
+            <span className="hidden sm:inline">{t.backToCourse}</span>
+          </a>
         </div>
       </header>
 
