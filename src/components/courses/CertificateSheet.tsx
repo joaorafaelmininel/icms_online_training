@@ -101,7 +101,7 @@ export default function CertificateSheet({
         </h1>
 
         {/* Rule */}
-        <div style={{ width: '60%', height: 1.5, background: BLUE, margin: '0 0 20px' }} />
+        <div style={{ width: '60%', height: 2, background: BLUE, margin: '0 0 20px' }} />
 
         {/* "in recognition of..." */}
         <p style={{ fontSize: 15, fontWeight: 300, color: TEXT_MID, margin: '0 0 4px', lineHeight: 1.5 }}>
