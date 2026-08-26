@@ -32,7 +32,7 @@ export default function CertificateSheet({
     height: CERT_HEIGHT,
     position: 'relative',
     backgroundColor: '#fff',
-    fontFamily: '"Roboto", "Helvetica Neue", Arial, sans-serif',
+    fontFamily: 'var(--font-roboto), "Helvetica Neue", Arial, sans-serif',
     overflow: 'hidden',
     flexShrink: 0,
   }
