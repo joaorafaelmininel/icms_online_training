@@ -205,6 +205,21 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
     })
   }
 
+  function onSlideTitleUpdated(slideId: string, title: LocalizedField) {
+    setSelectedSlide(prev => prev?.id === slideId ? { ...prev, title } : prev)
+    setSelectedModule(prev => prev
+      ? { ...prev, module_slides: prev.module_slides.map(s => s.id === slideId ? { ...s, title } : s) }
+      : prev
+    )
+    setSelectedCourse(prev => !prev ? prev : {
+      ...prev,
+      course_modules: prev.course_modules.map(m => ({
+        ...m,
+        module_slides: m.module_slides.map(s => s.id === slideId ? { ...s, title } : s),
+      })),
+    })
+  }
+
   function onSlideDeleted(slideId: string) {
     setSelectedSlide(prev => prev?.id === slideId ? null : prev)
     setSelectedModule(prev => prev
@@ -413,6 +428,7 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
               setActiveTab={setActiveTab}
               onContentUpdated={onSlideContentUpdated}
               onDeleted={onSlideDeleted}
+              onTitleUpdated={onSlideTitleUpdated}
             />
           )}
         </main>
@@ -424,17 +440,22 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
 // ─── Slide Editor ─────────────────────────────────────────────────────────────
 
 function SlideEditor({
-  slide, activeMediaType, setActiveMediaType, activeTab, setActiveTab, onContentUpdated, onDeleted,
+  slide, activeMediaType, setActiveMediaType, activeTab, setActiveTab, onContentUpdated, onDeleted, onTitleUpdated,
 }: {
   slide: SlideData; activeMediaType: MediaType; setActiveMediaType: (t: MediaType) => void
   activeTab: EditorTab; setActiveTab: (t: EditorTab) => void
   onContentUpdated: (id: string, content: ContentBlock[]) => void
   onDeleted: (id: string) => void
+  onTitleUpdated: (id: string, title: LocalizedField) => void
 }) {
   const [content,       setContent      ] = useState<ContentBlock[]>(slide.content || [])
   const [uploadMsg,     setUploadMsg    ] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [deleting,      setDeleting     ] = useState(false)
   const [deleteError,   setDeleteError  ] = useState<string | null>(null)
+  const [titleEn,       setTitleEn      ] = useState(slide.title?.en || '')
+  const [titleEs,       setTitleEs      ] = useState(slide.title?.es || '')
+  const [savingTitle,   setSavingTitle  ] = useState(false)
+  const [titleError,    setTitleError   ] = useState<string | null>(null)
   const [captionEn,     setCaptionEn    ] = useState('')
   const [captionEs,     setCaptionEs    ] = useState('')
   // Per-lang upload state for video/audio
@@ -448,7 +469,29 @@ function SlideEditor({
   const fileEsRef  = useRef<HTMLInputElement>(null)
   const fileImgRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { setContent(slide.content || []); setDeleteError(null) }, [slide.id])
+  useEffect(() => {
+    setContent(slide.content || []); setDeleteError(null)
+    setTitleEn(slide.title?.en || ''); setTitleEs(slide.title?.es || ''); setTitleError(null)
+  }, [slide.id])
+
+  const titleDirty = titleEn !== (slide.title?.en || '') || titleEs !== (slide.title?.es || '')
+
+  async function saveTitle() {
+    setSavingTitle(true); setTitleError(null)
+    try {
+      const res = await fetch(`/api/admin/slides/${slide.id}/content`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_title', title: { en: titleEn, es: titleEs } }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to save title')
+      onTitleUpdated(slide.id, data.title)
+    } catch (err: any) {
+      setTitleError(err.message)
+    } finally {
+      setSavingTitle(false)
+    }
+  }
 
   async function handleDeleteSlide() {
     const label = loc(slide.title) || `Slide ${slide.slide_number}`
@@ -587,12 +630,9 @@ function SlideEditor({
       {/* Slide header */}
       <div className="border-b border-slate-200 bg-white px-6 py-3">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-baseline gap-2">
-            <span className="text-xs font-bold tabular-nums text-slate-300">
-              {String(slide.slide_number).padStart(2, '0')}
-            </span>
-            <h2 className="text-sm font-semibold text-slate-800">{loc(slide.title)}</h2>
-          </div>
+          <span className="text-xs font-bold tabular-nums text-slate-300">
+            {String(slide.slide_number).padStart(2, '0')}
+          </span>
           <button onClick={handleDeleteSlide} disabled={deleting}
             className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-red-500 transition hover:bg-red-50 disabled:opacity-50">
             {deleting ? (
@@ -604,6 +644,37 @@ function SlideEditor({
             {deleting ? 'Deleting...' : 'Delete Slide'}
           </button>
         </div>
+
+        <div className="mt-2 flex items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-300">EN</span>
+            <input
+              value={titleEn}
+              onChange={e => setTitleEn(e.target.value)}
+              placeholder={`Slide ${slide.slide_number}`}
+              className="w-full rounded-md border border-slate-200 py-1.5 pl-8 pr-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
+            />
+          </div>
+          <div className="relative min-w-0 flex-1">
+            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-300">ES</span>
+            <input
+              value={titleEs}
+              onChange={e => setTitleEs(e.target.value)}
+              placeholder={`Diapositiva ${slide.slide_number}`}
+              className="w-full rounded-md border border-slate-200 py-1.5 pl-8 pr-2.5 text-sm text-slate-600 outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
+            />
+          </div>
+          {titleDirty && (
+            <button onClick={saveTitle} disabled={savingTitle}
+              className="shrink-0 rounded-md bg-[#0B4A7C] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#083457] disabled:opacity-50">
+              {savingTitle ? 'Saving...' : 'Save'}
+            </button>
+          )}
+        </div>
+
+        {titleError && (
+          <p className="mt-1.5 text-xs text-red-600">{titleError}</p>
+        )}
         {deleteError && (
           <p className="mt-1.5 text-xs text-red-600">{deleteError}</p>
         )}

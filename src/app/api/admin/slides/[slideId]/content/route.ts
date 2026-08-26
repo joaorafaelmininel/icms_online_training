@@ -69,10 +69,28 @@ export async function PATCH(
   }
 
   const body = (await req.json()) as {
-    action: 'add_block' | 'remove_block' | 'replace_content'
+    action: 'add_block' | 'remove_block' | 'replace_content' | 'update_title'
     block?: ContentBlock
     index?: number
     content?: ContentBlock[]
+    title?: { en: string; es: string }
+  }
+
+  if (body.action === 'update_title') {
+    if (!body.title || typeof body.title.en !== 'string' || typeof body.title.es !== 'string') {
+      return NextResponse.json({ error: 'Invalid title' }, { status: 400 })
+    }
+
+    const titleUpdateResult = await supabase
+      .from('module_slides')
+      .update({ title: body.title, updated_at: new Date().toISOString() } as never)
+      .eq('id', params.slideId)
+
+    if (titleUpdateResult.error) {
+      return NextResponse.json({ error: titleUpdateResult.error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ title: body.title })
   }
 
   const slideResult = await supabase
