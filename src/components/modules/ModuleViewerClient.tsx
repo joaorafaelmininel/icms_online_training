@@ -1,7 +1,7 @@
 // src/components/modules/ModuleViewerClient.tsx
 'use client';
 
-import { useState, useEffect, useCallback, useTransition, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useTransition, useRef } from 'react';
 import { markSlideViewed } from '@/lib/actions/slides';
 import SlideRenderer from './SlideRenderer';
 import type { Slide, ContentBlock } from '@/lib/types/slides';
@@ -51,6 +51,8 @@ const i18n = {
     prev: 'Previous',
     next: 'Next',
     slideIndex: 'Slide Index',
+    hideMenu: 'Hide slide menu',
+    showMenu: 'Show slide menu',
     slides: 'slides',
     viewed: 'viewed',
     takeQuiz: 'Take Module Quiz',
@@ -74,6 +76,8 @@ const i18n = {
     prev: 'Anterior',
     next: 'Siguiente',
     slideIndex: 'Índice de Diapositivas',
+    hideMenu: 'Ocultar menú de diapositivas',
+    showMenu: 'Mostrar menú de diapositivas',
     slides: 'diapositivas',
     viewed: 'vistas',
     takeQuiz: 'Tomar Quiz del Módulo',
@@ -130,6 +134,13 @@ export default function ModuleViewerClient({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const slideAreaRef = useRef<HTMLDivElement>(null);
 
+  // Default to closed on phones/tablets so the slide menu doesn't eat the
+  // reading area on first load — runs before paint so there's no visible
+  // flash of the sidebar sliding shut.
+  useLayoutEffect(() => {
+    if (window.innerWidth < 1024) setSidebarOpen(false);
+  }, []);
+
   const total = slides.length;
   const viewedCount = completed.size;
   const allViewed = viewedCount >= total;
@@ -162,6 +173,16 @@ export default function ModuleViewerClient({
 
   const goNext = useCallback(() => goTo(current + 1), [current, goTo]);
   const goPrev = useCallback(() => goTo(current - 1), [current, goTo]);
+
+  // Selecting a slide from the overlay menu on phones/tablets should also
+  // dismiss it, so the reader isn't left tapping the toggle a second time.
+  const selectSlide = useCallback(
+    (n: number) => {
+      goTo(n);
+      if (window.innerWidth < 1024) setSidebarOpen(false);
+    },
+    [goTo]
+  );
 
   // Keyboard
   useEffect(() => {
@@ -226,20 +247,33 @@ export default function ModuleViewerClient({
           {/* Sidebar toggle */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-            aria-label={t.slideIndex}
+            className={`rounded-lg p-2 transition hover:bg-gray-100 ${
+              sidebarOpen ? 'text-[#0B4A7C]' : 'text-gray-400 hover:text-gray-600'
+            }`}
+            title={sidebarOpen ? t.hideMenu : t.showMenu}
+            aria-label={sidebarOpen ? t.hideMenu : t.showMenu}
+            aria-pressed={sidebarOpen}
           >
-            <SidebarIcon />
+            <SidebarIcon open={sidebarOpen} />
           </button>
         </div>
       </header>
 
       {/* ── BODY: SIDEBAR + CONTENT ──────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex flex-1 overflow-hidden">
+        {/* Backdrop — phones/tablets only, dismisses the overlay menu on tap */}
+        {sidebarOpen && (
+          <div
+            onClick={() => setSidebarOpen(false)}
+            className="absolute inset-0 z-10 bg-black/40 lg:hidden"
+            aria-hidden="true"
+          />
+        )}
+
         {/* ── SIDEBAR ──────────────────────────────────────────────────────────── */}
         <aside
-          className={`z-30 flex-shrink-0 border-r border-gray-200 bg-white transition-all duration-300 ease-in-out ${
-            sidebarOpen ? 'w-64 translate-x-0 lg:w-72' : 'w-0 -translate-x-full lg:w-0 lg:-translate-x-full'
+          className={`absolute inset-y-0 left-0 z-20 w-64 flex-shrink-0 bg-white shadow-2xl transition-all duration-300 ease-in-out lg:static lg:inset-y-auto lg:shadow-none lg:border-r lg:border-gray-200 ${
+            sidebarOpen ? 'translate-x-0 lg:w-72' : '-translate-x-full lg:w-0 lg:-translate-x-full'
           } overflow-hidden`}
         >
           <div className="flex h-full w-64 flex-col lg:w-72">
@@ -271,7 +305,7 @@ export default function ModuleViewerClient({
                 return (
                   <button
                     key={slide.id}
-                    onClick={() => goTo(slide.slide_number)}
+                    onClick={() => selectSlide(slide.slide_number)}
                     className={`group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
                       isActive
                         ? 'border-r-2 border-[#0B4A7C] bg-[#0B4A7C]/[0.04]'
@@ -534,10 +568,12 @@ function CheckIcon({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
-function SidebarIcon() {
+function SidebarIcon({ open }: { open: boolean }) {
   return (
-    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 6h18M3 10h18M3 14h10M3 18h10" />
+    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+      <rect x="3" y="4" width="18" height="16" rx="2.5" />
+      <path strokeLinecap="round" d="M9.5 4v16" />
+      {open && <rect x="4" y="5" width="4.5" height="14" rx="1.2" fill="currentColor" stroke="none" opacity="0.35" />}
     </svg>
   );
 }
