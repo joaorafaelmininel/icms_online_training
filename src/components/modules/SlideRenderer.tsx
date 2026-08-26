@@ -1,7 +1,7 @@
 // src/components/modules/SlideRenderer.tsx
 'use client';
 
-import { useState, useRef, type CSSProperties } from 'react';
+import { useState, useRef } from 'react';
 import type { ContentBlock, SlideLayout } from '@/lib/types/slides';
 
 type Lang = 'en' | 'es';
@@ -345,26 +345,28 @@ function List({ items, ordered }: { items: string[]; ordered: boolean }) {
 const calloutStyles = {
   tip: {
     accent: '#0F7A5C',
-    bg: 'bg-emerald-50/60',
+    ring: 'rgba(15,122,92,0.14)',
+    bg: '#F7FBF9',
   },
   warning: {
     accent: '#B45309',
-    bg: 'bg-amber-50/60',
+    ring: 'rgba(180,83,9,0.16)',
+    bg: '#FDFAF5',
   },
   info: {
     accent: '#0B4A7C',
-    bg: 'bg-blue-50/60',
+    ring: 'rgba(11,74,124,0.14)',
+    bg: '#F7FAFC',
   },
 };
 
-function CalloutIcon({ variant, style }: { variant: string; style?: CSSProperties }) {
+function CalloutIcon({ variant }: { variant: string }) {
   const common = {
-    className: 'mt-0.5 h-5 w-5 shrink-0',
-    style,
+    className: 'h-4 w-4',
     viewBox: '0 0 24 24',
     fill: 'none',
     stroke: 'currentColor',
-    strokeWidth: 1.5,
+    strokeWidth: 2,
   };
 
   if (variant === 'tip') {
@@ -401,11 +403,19 @@ function Callout({
 
   return (
     <div
-      className={`flex items-start gap-3 rounded-md ${s.bg} py-4 pl-4 pr-5 sm:py-5 sm:pl-5`}
-      style={{ borderLeft: `3px solid ${s.accent}` }}
+      className="flex items-start gap-3.5 rounded-xl p-4 sm:p-5"
+      style={{
+        backgroundColor: s.bg,
+        boxShadow: `0 1px 2px rgba(15,23,42,0.04), 0 0 0 1px ${s.ring}`,
+      }}
     >
-      <CalloutIcon variant={variant} style={{ color: s.accent }} />
-      <div className="min-w-0 flex-1">
+      <span
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
+        style={{ backgroundColor: s.accent }}
+      >
+        <CalloutIcon variant={variant} />
+      </span>
+      <div className="min-w-0 flex-1 pt-0.5">
         {title && (
           <p className="mb-1 text-sm font-semibold" style={{ color: s.accent }}>
             {title}
