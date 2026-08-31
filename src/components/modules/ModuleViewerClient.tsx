@@ -280,28 +280,26 @@ export default function ModuleViewerClient({
 
       {/* ── COVER SCREEN — shown once before the slide sequence starts ────────── */}
       {showCover && coverBlock ? (
-        <div className="flex flex-1 items-center justify-center overflow-hidden p-6 sm:p-10">
-          <div className="flex w-full max-w-3xl flex-col items-start gap-10 rounded-2xl bg-[#0B4A7C] px-8 py-14 shadow-xl sm:px-14 sm:py-20">
-            <div>
-              <p className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl">
-                {loc(coverBlock.title, language)}
+        <div className="flex flex-1 flex-col items-start justify-center gap-10 overflow-hidden bg-[#0B4A7C] px-8 py-14 sm:px-16 sm:py-20 lg:px-24">
+          <div>
+            <p className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
+              {loc(coverBlock.title, language)}
+            </p>
+            {coverBlock.subtitle && (
+              <p className="mt-3 text-2xl font-light text-white/90 sm:text-3xl lg:text-4xl">
+                {loc(coverBlock.subtitle, language)}
               </p>
-              {coverBlock.subtitle && (
-                <p className="mt-3 text-2xl font-light text-white/90 sm:text-3xl">
-                  {loc(coverBlock.subtitle, language)}
-                </p>
-              )}
-            </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/insarag-logo.svg" alt="INSARAG" className="h-12 w-auto sm:h-16" />
-            <button
-              onClick={() => setShowCover(false)}
-              className="flex items-center gap-2 rounded-lg bg-white px-7 py-3 text-sm font-bold text-[#0B4A7C] shadow-sm transition hover:bg-gray-100"
-            >
-              {t.startCourse}
-              <ChevronRightIcon />
-            </button>
+            )}
           </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/insarag-logo.svg" alt="INSARAG" className="h-12 w-auto sm:h-16" />
+          <button
+            onClick={() => setShowCover(false)}
+            className="flex items-center gap-2 rounded-lg bg-white px-7 py-3 text-sm font-bold text-[#0B4A7C] shadow-sm transition hover:bg-gray-100"
+          >
+            {t.startCourse}
+            <ChevronRightIcon />
+          </button>
         </div>
       ) : (
       /* ── BODY: SIDEBAR + CONTENT ──────────────────────────────────────────── */
