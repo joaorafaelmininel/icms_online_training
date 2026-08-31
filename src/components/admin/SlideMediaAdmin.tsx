@@ -188,6 +188,10 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
   const [activeTab,       setActiveTab      ] = useState<EditorTab>('content')
   const [creatingSlide,   setCreatingSlide  ] = useState(false)
   const [createError,     setCreateError    ] = useState<string | null>(null)
+  const [importOpen,      setImportOpen     ] = useState(false)
+  const [importText,      setImportText     ] = useState('')
+  const [importing,       setImporting      ] = useState(false)
+  const [importError,     setImportError    ] = useState<string | null>(null)
 
   function pickCourse(course: CourseData) {
     setSelectedCourse(course); setSelectedModule(null); setSelectedSlide(null)
@@ -262,6 +266,47 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
       setCreateError(err.message)
     } finally {
       setCreatingSlide(false)
+    }
+  }
+
+  async function handleBulkImport() {
+    if (!selectedModule) return
+    let slides: any
+    try {
+      slides = JSON.parse(importText)
+    } catch {
+      setImportError('Invalid JSON — could not parse.')
+      return
+    }
+    if (!Array.isArray(slides) || slides.length === 0) {
+      setImportError('Expected a non-empty JSON array of slides.')
+      return
+    }
+
+    setImporting(true); setImportError(null)
+    try {
+      const res  = await fetch('/api/admin/slides/bulk-import', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduleId: selectedModule.id, slides }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to import slides')
+
+      const newSlides = data.slides as SlideData[]
+      setSelectedModule(prev => prev ? { ...prev, module_slides: [...prev.module_slides, ...newSlides] } : prev)
+      setSelectedCourse(prev => !prev ? prev : {
+        ...prev,
+        course_modules: prev.course_modules.map(m => m.id === selectedModule.id
+          ? { ...m, module_slides: [...m.module_slides, ...newSlides] }
+          : m
+        ),
+      })
+      setImportOpen(false); setImportText('')
+      if (newSlides[0]) { setSelectedSlide(newSlides[0]); setActiveTab('content') }
+    } catch (err: any) {
+      setImportError(err.message)
+    } finally {
+      setImporting(false)
     }
   }
 
@@ -352,19 +397,30 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
               {selectedModule ? `M${selectedModule.module_number} — Slides` : 'Slides'}
             </p>
             {selectedModule && (
-              <button
-                onClick={handleCreateSlide}
-                disabled={creatingSlide}
-                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
-              >
-                {creatingSlide ? (
-                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              <div className="mt-2 flex gap-1.5">
+                <button
+                  onClick={handleCreateSlide}
+                  disabled={creatingSlide}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {creatingSlide ? (
+                    <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : Icons.plus}
+                  New Slide
+                </button>
+                <button
+                  onClick={() => { setImportOpen(true); setImportError(null) }}
+                  title="Import Slides (JSON)"
+                  className="flex items-center justify-center rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-slate-600 transition hover:bg-slate-50"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 16.5V9m0 7.5l-3-3m3 3l3-3M4.5 19.5h15a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5h-15A1.5 1.5 0 003 6v12a1.5 1.5 0 001.5 1.5z" />
                   </svg>
-                ) : Icons.plus}
-                New Slide
-              </button>
+                </button>
+              </div>
             )}
             {createError && (
               <p className="mt-1.5 text-[10px] text-red-500">{createError}</p>
@@ -434,6 +490,57 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
           )}
         </main>
       </div>
+
+      {/* ── Import Slides modal ── */}
+      {importOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-6">
+          <div className="flex w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800">Import Slides</h3>
+                <p className="text-xs text-slate-400">
+                  Paste a JSON array of slides — each appended to the end of {selectedModule ? loc(selectedModule.title) : 'this module'}.
+                </p>
+              </div>
+              <button onClick={() => { setImportOpen(false); setImportError(null) }}
+                className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="px-5 py-4">
+              <textarea
+                rows={14}
+                value={importText}
+                onChange={e => setImportText(e.target.value)}
+                placeholder={'[\n  {\n    "title": { "en": "...", "es": "..." },\n    "content": [\n      { "type": "heading", "level": 1, "text": { "en": "...", "es": "..." } },\n      { "type": "paragraph", "text": { "en": "...", "es": "..." } }\n    ]\n  }\n]'}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs leading-relaxed text-slate-700 outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
+              />
+              {importError && (
+                <p className="mt-2 text-xs text-red-600">{importError}</p>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-3">
+              <button onClick={() => { setImportOpen(false); setImportError(null) }}
+                className="rounded-md px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50">
+                Cancel
+              </button>
+              <button onClick={handleBulkImport} disabled={importing || !importText.trim()}
+                className="flex items-center gap-1.5 rounded-md px-4 py-1.5 text-xs font-bold text-white transition disabled:opacity-50"
+                style={{ background: '#0B4A7C' }}>
+                {importing && (
+                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+                {importing ? 'Importing...' : 'Import'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
