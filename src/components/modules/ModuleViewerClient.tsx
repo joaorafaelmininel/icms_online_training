@@ -280,13 +280,13 @@ export default function ModuleViewerClient({
 
       {/* ── COVER SCREEN — shown once before the slide sequence starts ────────── */}
       {showCover && coverBlock ? (
-        <div className="mx-6 flex flex-1 flex-col items-start justify-center gap-10 overflow-hidden bg-[#0B4A7C] px-8 py-14 sm:mx-10 sm:px-16 sm:py-20 lg:mx-[20%] lg:px-16">
+        <div className="mx-6 flex flex-1 flex-col items-start justify-center gap-10 overflow-hidden bg-[#0B4A7C] px-8 py-14 sm:mx-10 sm:px-16 sm:py-20 lg:mx-[40%] lg:px-8">
           <div>
-            <p className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
+            <p className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl">
               {loc(coverBlock.title, language)}
             </p>
             {coverBlock.subtitle && (
-              <p className="mt-3 text-2xl font-light text-white/90 sm:text-3xl lg:text-4xl">
+              <p className="mt-3 text-2xl font-light text-white/90 sm:text-3xl">
                 {loc(coverBlock.subtitle, language)}
               </p>
             )}
