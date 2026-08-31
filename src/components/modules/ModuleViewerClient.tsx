@@ -53,6 +53,7 @@ const i18n = {
     slideIndex: 'Module Progress',
     hideMenu: 'Hide slide menu',
     showMenu: 'Show slide menu',
+    startCourse: 'Start the Course',
     slides: 'slides',
     viewed: 'viewed',
     takeQuiz: 'Take Module Quiz',
@@ -78,6 +79,7 @@ const i18n = {
     slideIndex: 'Progreso del Módulo',
     hideMenu: 'Ocultar menú de diapositivas',
     showMenu: 'Mostrar menú de diapositivas',
+    startCourse: 'Comenzar el Curso',
     slides: 'diapositivas',
     viewed: 'vistas',
     takeQuiz: 'Tomar Quiz del Módulo',
@@ -134,6 +136,15 @@ export default function ModuleViewerClient({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const slideAreaRef = useRef<HTMLDivElement>(null);
 
+  // If slide 1's first content block is a "hero" cover, show it as a
+  // standalone welcome screen before the module starts — it isn't part of
+  // the slide sequence itself (doesn't count toward "1 of N", isn't
+  // shown inline once inside slide 1).
+  const firstSlide = slides.find((s) => s.slide_number === 1) || null;
+  const firstBlock = (firstSlide?.content as ContentBlock[] | undefined)?.[0];
+  const coverBlock = firstBlock && firstBlock.type === 'hero' ? firstBlock : null;
+  const [showCover, setShowCover] = useState(!!coverBlock);
+
   // Default to closed on phones/tablets so the slide menu doesn't eat the
   // reading area on first load — runs before paint so there's no visible
   // flash of the sidebar sliding shut.
@@ -146,6 +157,10 @@ export default function ModuleViewerClient({
   const allViewed = viewedCount >= total;
   const pct = total > 0 ? Math.round((viewedCount / total) * 100) : 0;
   const currentSlide = slides.find((s) => s.slide_number === current) || null;
+  const currentSlideContent =
+    currentSlide?.slide_number === 1 && coverBlock
+      ? (currentSlide.content as ContentBlock[]).slice(1)
+      : (currentSlide?.content as ContentBlock[] | undefined) || [];
   const nextMod = allModules.find((m) => m.module_number === mod.module_number + 1);
   const isLastModule = !nextMod;
   const quizPassed = moduleProgress?.quiz_passed || false;
@@ -210,18 +225,22 @@ export default function ModuleViewerClient({
     <div className="flex h-[100dvh] flex-col bg-gray-50">
       {/* ── TOP BAR ──────────────────────────────────────────────────────────── */}
       <header className="z-40 flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2 sm:gap-4 sm:px-5 sm:py-2.5">
-        {/* Sidebar toggle */}
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className={`shrink-0 rounded-lg p-2 transition hover:bg-gray-100 ${
-            sidebarOpen ? 'text-[#0B4A7C]' : 'text-gray-400 hover:text-gray-600'
-          }`}
-          title={sidebarOpen ? t.hideMenu : t.showMenu}
-          aria-label={sidebarOpen ? t.hideMenu : t.showMenu}
-          aria-pressed={sidebarOpen}
-        >
-          <SidebarIcon open={sidebarOpen} />
-        </button>
+        {/* Sidebar toggle — hidden while the cover screen is showing (no sidebar yet) */}
+        {showCover ? (
+          <div className="h-9 w-9 shrink-0" />
+        ) : (
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className={`shrink-0 rounded-lg p-2 transition hover:bg-gray-100 ${
+              sidebarOpen ? 'text-[#0B4A7C]' : 'text-gray-400 hover:text-gray-600'
+            }`}
+            title={sidebarOpen ? t.hideMenu : t.showMenu}
+            aria-label={sidebarOpen ? t.hideMenu : t.showMenu}
+            aria-pressed={sidebarOpen}
+          >
+            <SidebarIcon open={sidebarOpen} />
+          </button>
+        )}
 
         {/* Module title (center) */}
         <div className="min-w-0 flex-1 text-center">
@@ -259,7 +278,33 @@ export default function ModuleViewerClient({
         </div>
       </header>
 
-      {/* ── BODY: SIDEBAR + CONTENT ──────────────────────────────────────────── */}
+      {/* ── COVER SCREEN — shown once before the slide sequence starts ────────── */}
+      {showCover && coverBlock ? (
+        <div className="flex flex-1 items-center justify-center overflow-hidden p-6 sm:p-10">
+          <div className="flex w-full max-w-3xl flex-col items-start gap-10 rounded-2xl bg-[#0B4A7C] px-8 py-14 shadow-xl sm:px-14 sm:py-20">
+            <div>
+              <p className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl">
+                {loc(coverBlock.title, language)}
+              </p>
+              {coverBlock.subtitle && (
+                <p className="mt-3 text-2xl font-light text-white/90 sm:text-3xl">
+                  {loc(coverBlock.subtitle, language)}
+                </p>
+              )}
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/insarag-logo.svg" alt="INSARAG" className="h-12 w-auto sm:h-16" />
+            <button
+              onClick={() => setShowCover(false)}
+              className="flex items-center gap-2 rounded-lg bg-white px-7 py-3 text-sm font-bold text-[#0B4A7C] shadow-sm transition hover:bg-gray-100"
+            >
+              {t.startCourse}
+              <ChevronRightIcon />
+            </button>
+          </div>
+        </div>
+      ) : (
+      /* ── BODY: SIDEBAR + CONTENT ──────────────────────────────────────────── */
       <div className="relative flex flex-1 overflow-hidden">
         {/* Backdrop — phones/tablets only, dismisses the overlay menu on tap */}
         {sidebarOpen && (
@@ -387,7 +432,7 @@ export default function ModuleViewerClient({
             <div className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
               {currentSlide ? (
                 <SlideRenderer
-                  content={currentSlide.content as ContentBlock[]}
+                  content={currentSlideContent}
                   layout={currentSlide.layout}
                   language={language}
                 />
@@ -536,6 +581,7 @@ export default function ModuleViewerClient({
           </nav>
         </main>
       </div>
+      )}
     </div>
   );
 }
