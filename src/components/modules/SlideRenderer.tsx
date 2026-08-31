@@ -124,9 +124,35 @@ function Block({ block, lang }: { block: ContentBlock; lang: Lang }) {
           text={loc(block.text, lang)}
         />
       );
+    case 'hero':
+      return (
+        <Hero
+          title={loc(block.title, lang)}
+          subtitle={loc(block.subtitle, lang)}
+        />
+      );
     default:
       return null;
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HERO — full-width title/cover banner (e.g. the course-intro opening slide)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function Hero({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="flex min-h-[320px] flex-col items-start justify-center gap-10 rounded-2xl bg-[#0B4A7C] px-8 py-14 sm:min-h-[380px] sm:px-14 sm:py-16 lg:px-16">
+      <div>
+        <p className="text-3xl font-extrabold tracking-tight text-white sm:text-5xl">{title}</p>
+        {subtitle && (
+          <p className="mt-2 text-xl font-light text-white/90 sm:text-2xl">{subtitle}</p>
+        )}
+      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/insarag-logo.svg" alt="INSARAG" className="h-12 w-auto sm:h-14" />
+    </div>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

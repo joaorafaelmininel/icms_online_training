@@ -25,6 +25,7 @@ type ContentBlock =
   | { type: 'list';      ordered?: boolean; items: LocalizedField[] }
   | { type: 'callout';   variant: string; title?: LocalizedField; text: LocalizedField }
   | { type: 'hotspot';   image: string; caption?: LocalizedField; spots: HotspotSpot[]; phoneFrame?: boolean }
+  | { type: 'hero';      title: LocalizedField; subtitle?: LocalizedField }
 
 interface SlideData {
   id: string
@@ -1003,7 +1004,7 @@ function ContentEditor({
   const [saving,       setSaving      ] = useState(false)
   const [msg,          setMsg         ] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [adding,       setAdding      ] = useState(false)
-  const [newType,      setNewType     ] = useState<'heading' | 'paragraph' | 'list' | 'callout'>('paragraph')
+  const [newType,      setNewType     ] = useState<'heading' | 'paragraph' | 'list' | 'callout' | 'hero'>('paragraph')
   const [localContent, setLocalContent] = useState<ContentBlock[]>(content)
 
   useEffect(() => { setLocalContent(content) }, [content])
@@ -1029,6 +1030,7 @@ function ContentEditor({
     else if (newType === 'list') newBlock = { type: 'list',      ordered: false, items: [{ en: '', es: '' }] }
     else if (newType === 'callout') newBlock = { type: 'callout', variant: 'info', title: { en: '', es: '' }, text: { en: '', es: '' } }
     else if (newType === 'hotspot') newBlock = { type: 'hotspot', image: '', spots: [{ id: 1, x: 50, y: 50, title: { en: '', es: '' }, text: { en: '', es: '' } }] }
+    else if (newType === 'hero') newBlock = { type: 'hero', title: { en: '', es: '' }, subtitle: { en: '', es: '' } }
     else                         newBlock = { type: 'paragraph', text: { en: '', es: '' } }
     setLocalContent(prev => [...prev, newBlock])
     setAdding(false)
@@ -1040,6 +1042,7 @@ function ContentEditor({
     { value: 'list',      label: 'List',      desc: 'Bullet or numbered' },
     { value: 'callout',   label: 'Callout',   desc: 'Info / tip / warning' },
     { value: 'hotspot',   label: 'Hotspot',   desc: 'Image with markers' },
+    { value: 'hero',      label: 'Hero',      desc: 'Full-width title banner' },
   ] as const
 
   return (
@@ -1147,7 +1150,7 @@ function BlockEditor({
   const lCls = "block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1"
 
   const BLOCK_LABELS: Record<string, string> = {
-    heading: 'Heading', paragraph: 'Paragraph', list: 'List', callout: 'Callout', hotspot: 'Hotspot',
+    heading: 'Heading', paragraph: 'Paragraph', list: 'List', callout: 'Callout', hotspot: 'Hotspot', hero: 'Hero',
   }
 
   const CALLOUT_CONFIGS = {
@@ -1277,6 +1280,16 @@ function BlockEditor({
               <div><label className={lCls}>Text — Spanish</label><textarea rows={3} className={tCls} value={block.text.es} placeholder="Texto en español" onChange={e => onChange({ ...block, text: { ...block.text, es: e.target.value } })} /></div>
             </div>
           </>
+        )}
+
+        {/* HERO */}
+        {block.type === 'hero' && (
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className={lCls}>Title — English</label><input className={iCls} value={block.title.en} placeholder="e.g. ICMS 3.0" onChange={e => onChange({ ...block, title: { ...block.title, en: e.target.value } })} /></div>
+            <div><label className={lCls}>Title — Spanish</label><input className={iCls} value={block.title.es} placeholder="p. ej. ICMS 3.0" onChange={e => onChange({ ...block, title: { ...block.title, es: e.target.value } })} /></div>
+            <div><label className={lCls}>Subtitle — English</label><input className={iCls} value={block.subtitle?.en || ''} placeholder="e.g. Online Course" onChange={e => onChange({ ...block, subtitle: { ...(block.subtitle || { en: '', es: '' }), en: e.target.value } })} /></div>
+            <div><label className={lCls}>Subtitle — Spanish</label><input className={iCls} value={block.subtitle?.es || ''} placeholder="p. ej. Curso en Línea" onChange={e => onChange({ ...block, subtitle: { ...(block.subtitle || { en: '', es: '' }), es: e.target.value } })} /></div>
+          </div>
         )}
 
       </div>

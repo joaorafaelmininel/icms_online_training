@@ -53,6 +53,12 @@ export interface CalloutBlock {
   text: LocalizedField;
 }
 
+export interface HeroBlock {
+  type: 'hero';
+  title: LocalizedField;
+  subtitle?: LocalizedField;
+}
+
 
 export interface HotspotSpot {
   id: number;
@@ -77,7 +83,8 @@ export type ContentBlock =
   | AudioBlock
   | ListBlock
   | CalloutBlock
-  | HotspotBlock;
+  | HotspotBlock
+  | HeroBlock;
 
 // ─── Slide (from DB row) ────────────────────────────────────────────────────
 
