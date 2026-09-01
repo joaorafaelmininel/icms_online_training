@@ -45,8 +45,9 @@ export default function SlideRenderer({ content, layout, language }: Props) {
             <Block key={i} block={block} lang={language} />
           ))}
         </div>
-        {/* Right: media */}
-        <div className="w-[45%] shrink-0 space-y-4">
+        {/* Right: media — widened ~2.5cm (95px) beyond the base 45% column,
+            which also nudges the text column left via the shared flex row. */}
+        <div className="w-[calc(45%+95px)] shrink-0 space-y-4">
           {mediaBlocks.map((block, i) => (
             <Block key={i} block={block} lang={language} />
           ))}
@@ -223,7 +224,7 @@ function ImageMedia({
           <img
             src={url}
             alt={alt || ''}
-            className="max-h-[500px] w-full object-contain"
+            className="max-h-[595px] w-full object-contain"
             onError={() => setError(true)}
             loading="lazy"
           />
@@ -533,7 +534,7 @@ function HotspotMedia({
         {/* Image or phone mockup */}
         <div className={`flex items-center justify-center bg-gray-50 ${phoneFrame ? 'p-6 py-8' : ''}`}>
           {phoneFrame ? (
-            <div className="relative mx-auto" style={{ width: 200 }}>
+            <div className="relative mx-auto" style={{ width: 295 }}>
               <div className="relative rounded-[2.5rem] border-[8px] border-gray-800 bg-gray-800 shadow-2xl overflow-hidden"
                 style={{ paddingTop: '216%' }}>
                 <div className="absolute top-0 left-0 right-0 h-6 bg-gray-900 z-20 flex items-center justify-center">
@@ -546,9 +547,9 @@ function HotspotMedia({
                   <div className="w-16 h-1 bg-gray-600 rounded-full" />
                 </div>
               </div>
-              <div className="absolute -right-3 top-20 w-1.5 h-8 bg-gray-700 rounded-r-sm" />
-              <div className="absolute -left-3 top-16 w-1.5 h-6 bg-gray-700 rounded-l-sm" />
-              <div className="absolute -left-3 top-24 w-1.5 h-6 bg-gray-700 rounded-l-sm" />
+              <div className="absolute -right-3 top-[118px] w-1.5 h-8 bg-gray-700 rounded-r-sm" />
+              <div className="absolute -left-3 top-[94px] w-1.5 h-6 bg-gray-700 rounded-l-sm" />
+              <div className="absolute -left-3 top-[142px] w-1.5 h-6 bg-gray-700 rounded-l-sm" />
             </div>
           ) : (
             <FlatImageWithMarkers />
