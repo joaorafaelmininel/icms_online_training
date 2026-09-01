@@ -1624,7 +1624,7 @@ function HotspotBlockEditor({
   const { containerRef, imgRef: previewImgRef, onImgLoad, markerStyle, pointToImageXY } = useContainedImageMarkers(block.image)
   // Flat mode: box matches the image's own aspect ratio (no letterboxing),
   // so plain % of the box is already % of the image.
-  const { imgRef: flatImgRef, onImgLoad: onFlatImgLoad, aspectRatio } = useImageAspectRatio()
+  const { imgRef: flatImgRef, onImgLoad: onFlatImgLoad, aspectRatio } = useImageAspectRatio(block.image)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const iCls = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"

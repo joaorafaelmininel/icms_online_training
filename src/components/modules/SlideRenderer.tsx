@@ -489,7 +489,7 @@ function HotspotMedia({
   // Flat (no frame) mode has no such fixed shape — the box is sized to
   // match the image's own aspect ratio, so it never letterboxes and a
   // marker's x/y as plain % of the box is already its % of the image.
-  const { imgRef: flatImgRef, onImgLoad: onFlatImgLoad, aspectRatio } = useImageAspectRatio();
+  const { imgRef: flatImgRef, onImgLoad: onFlatImgLoad, aspectRatio } = useImageAspectRatio(image);
 
   const markerButtons = (style: (spot: HotspotSpot) => { left: string; top: string }) =>
     spots.map(spot => (
