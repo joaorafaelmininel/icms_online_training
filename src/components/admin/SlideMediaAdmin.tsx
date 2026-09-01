@@ -1626,6 +1626,22 @@ function HotspotBlockEditor({
   // so plain % of the box is already % of the image.
   const { imgRef: flatImgRef, onImgLoad: onFlatImgLoad, aspectRatio } = useImageAspectRatio(block.image)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Debug-only: measure the flat preview box *after* the browser has
+  // actually painted the current aspectRatio, not during React's render
+  // pass — reading getBoundingClientRect() inline in JSX reads the DOM as
+  // it existed before this render's style change is committed, which is
+  // one step stale and was giving a misleading readout.
+  const flatContainerRef = useRef<HTMLDivElement>(null)
+  const [flatBoxRect, setFlatBoxRect] = useState<{ w: number; h: number } | null>(null)
+  useEffect(() => {
+    const el = flatContainerRef.current
+    if (!el) return
+    const measure = () => setFlatBoxRect({ w: el.clientWidth, h: el.clientHeight })
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [aspectRatio])
 
   const iCls = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
   const lCls = "block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1"
@@ -1763,7 +1779,7 @@ function HotspotBlockEditor({
                 </div>
               </div>
             ) : (
-              <div className="relative w-full rounded-lg overflow-hidden border border-slate-200 bg-slate-900" style={{ aspectRatio: String(aspectRatio || 16 / 9), cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onFlatPositionClick}>
+              <div ref={flatContainerRef} className="relative w-full rounded-lg overflow-hidden border border-slate-200 bg-slate-900" style={{ aspectRatio: String(aspectRatio || 16 / 9), cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onFlatPositionClick}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img ref={flatImgRef} src={block.image} alt="" onLoad={onFlatImgLoad} className="w-full h-full object-contain block bg-gray-50" />
                 {markerButtons(s => ({ left: `${s.x}%`, top: `${s.y}%` }))}
@@ -1771,7 +1787,7 @@ function HotspotBlockEditor({
             )}
             {!block.phoneFrame && (
               <p className="mt-1.5 text-center text-[10px] text-amber-600">
-                debug: aspectRatio={aspectRatio ?? 'unset (using 16/9 fallback)'} · natural={flatImgRef.current?.naturalWidth ?? '?'}×{flatImgRef.current?.naturalHeight ?? '?'} · box={String(flatImgRef.current?.parentElement?.getBoundingClientRect().width.toFixed(0))}×{String(flatImgRef.current?.parentElement?.getBoundingClientRect().height.toFixed(0))}
+                debug: aspectRatio={aspectRatio ?? 'unset (16/9 fallback)'} ({(aspectRatio || 16 / 9).toFixed(3)}) · natural={flatImgRef.current?.naturalWidth ?? '?'}×{flatImgRef.current?.naturalHeight ?? '?'} · painted box={flatBoxRect ? `${flatBoxRect.w}×${flatBoxRect.h} (ratio ${(flatBoxRect.w / flatBoxRect.h).toFixed(3)})` : 'measuring...'}
               </p>
             )}
             {activeSpot && <p className="mt-1.5 text-center text-[10px] text-slate-400">Click on image to move marker {activeSpot}</p>}
