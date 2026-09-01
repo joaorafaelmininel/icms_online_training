@@ -519,7 +519,7 @@ function HotspotMedia({
   );
 
   const FlatImageWithMarkers = () => (
-    <div className="relative w-full" style={{ aspectRatio: aspectRatio || 16 / 9 }}>
+    <div className="relative w-full" style={{ aspectRatio: String(aspectRatio || 16 / 9) }}>
       <img ref={flatImgRef} src={image} alt="" onLoad={onFlatImgLoad} className="w-full h-full object-contain block bg-gray-50" />
       {markerButtons(spot => ({ left: `${spot.x}%`, top: `${spot.y}%` }))}
     </div>

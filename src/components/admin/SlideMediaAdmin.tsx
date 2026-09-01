@@ -1763,11 +1763,16 @@ function HotspotBlockEditor({
                 </div>
               </div>
             ) : (
-              <div className="relative w-full rounded-lg overflow-hidden border border-slate-200 bg-slate-900" style={{ aspectRatio: aspectRatio || 16 / 9, cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onFlatPositionClick}>
+              <div className="relative w-full rounded-lg overflow-hidden border border-slate-200 bg-slate-900" style={{ aspectRatio: String(aspectRatio || 16 / 9), cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onFlatPositionClick}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img ref={flatImgRef} src={block.image} alt="" onLoad={onFlatImgLoad} className="w-full h-full object-contain block bg-gray-50" />
                 {markerButtons(s => ({ left: `${s.x}%`, top: `${s.y}%` }))}
               </div>
+            )}
+            {!block.phoneFrame && (
+              <p className="mt-1.5 text-center text-[10px] text-amber-600">
+                debug: aspectRatio={aspectRatio ?? 'unset (using 16/9 fallback)'} · natural={flatImgRef.current?.naturalWidth ?? '?'}×{flatImgRef.current?.naturalHeight ?? '?'} · box={String(flatImgRef.current?.parentElement?.getBoundingClientRect().width.toFixed(0))}×{String(flatImgRef.current?.parentElement?.getBoundingClientRect().height.toFixed(0))}
+              </p>
             )}
             {activeSpot && <p className="mt-1.5 text-center text-[10px] text-slate-400">Click on image to move marker {activeSpot}</p>}
           </div>
