@@ -1,7 +1,7 @@
 // src/components/admin/SlideMediaAdmin.tsx
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, type MouseEvent } from 'react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1700,33 +1700,67 @@ function HotspotBlockEditor({
         </button>
       </div>
 
-      {/* Hotspot preview with clickable markers */}
-      {block.image && (
-        <div>
-          <label className={lCls}>Marker Positions — click image to reposition selected marker</label>
-          <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-900"
-            onClick={e => {
-              if (!activeSpot) return
-              const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
-              const x = Math.round(((e.clientX - rect.left) / rect.width) * 100)
-              const y = Math.round(((e.clientY - rect.top) / rect.height) * 100)
-              updateSpot(activeSpot, { x, y })
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={block.image} alt="" className="w-full max-h-60 object-contain" style={{ cursor: activeSpot ? 'crosshair' : 'default' }} />
+      {/* Hotspot preview with clickable markers — mirrors the exact box the
+          student sees (SlideRenderer's HotspotMedia), phone frame included,
+          so a marker placed here lands in the same spot for the student.
+          Positions are always % of this clickable box, never of the raw
+          image, since object-contain can letterbox it differently in each
+          layout. */}
+      {block.image && (() => {
+        const onPositionClick = (e: MouseEvent<HTMLDivElement>) => {
+          if (!activeSpot) return
+          const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
+          const x = Math.round(((e.clientX - rect.left) / rect.width) * 100)
+          const y = Math.round(((e.clientY - rect.top) / rect.height) * 100)
+          updateSpot(activeSpot, { x, y })
+        }
+        const markers = (
+          <>
             {block.spots.map(s => (
               <button key={s.id} onClick={e => { e.stopPropagation(); setActiveSpot(activeSpot === s.id ? null : s.id) }}
                 style={{ left: `${s.x}%`, top: `${s.y}%` }}
-                className={`absolute -translate-x-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold transition ${
+                className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold transition ${
                   activeSpot === s.id ? 'border-white bg-[#0B4A7C] text-white scale-125 ring-2 ring-blue-300' : 'border-white bg-[#0B4A7C]/80 text-white hover:scale-110'
                 }`}
               >{s.id}</button>
             ))}
-            {activeSpot && <p className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-white/70">Click on image to move marker {activeSpot}</p>}
+          </>
+        )
+        return (
+          <div>
+            <label className={lCls}>Marker Positions — click image to reposition selected marker</label>
+            {block.phoneFrame ? (
+              <div className="flex justify-center rounded-lg border border-slate-200 bg-slate-900 py-6">
+                <div className="relative mx-auto" style={{ width: 200 }}>
+                  <div className="relative rounded-[2.5rem] border-[8px] border-gray-800 bg-gray-800 shadow-2xl overflow-hidden" style={{ paddingTop: '216%' }}>
+                    <div className="absolute top-0 left-0 right-0 h-6 bg-gray-900 z-20 flex items-center justify-center">
+                      <div className="w-20 h-3 bg-gray-800 rounded-full" />
+                    </div>
+                    <div className="absolute inset-0 top-6 bottom-4 overflow-hidden z-10" style={{ cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onPositionClick}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={block.image} alt="" className="w-full h-full object-contain block bg-gray-50" />
+                      {markers}
+                    </div>
+                    <div className="absolute bottom-1.5 left-0 right-0 flex justify-center z-20">
+                      <div className="w-16 h-1 bg-gray-600 rounded-full" />
+                    </div>
+                  </div>
+                  <div className="absolute -right-3 top-20 w-1.5 h-8 bg-gray-700 rounded-r-sm" />
+                  <div className="absolute -left-3 top-16 w-1.5 h-6 bg-gray-700 rounded-l-sm" />
+                  <div className="absolute -left-3 top-24 w-1.5 h-6 bg-gray-700 rounded-l-sm" />
+                </div>
+              </div>
+            ) : (
+              <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-900" style={{ cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onPositionClick}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={block.image} alt="" className="w-full max-h-60 object-contain" />
+                {markers}
+              </div>
+            )}
+            {activeSpot && <p className="mt-1.5 text-center text-[10px] text-slate-400">Click on image to move marker {activeSpot}</p>}
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Spot list */}
       <div>
