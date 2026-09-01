@@ -3,6 +3,7 @@
 
 import { useState, useRef } from 'react';
 import type { ContentBlock, SlideLayout } from '@/lib/types/slides';
+import { useContainedImageMarkers } from '@/hooks/useContainedImageMarkers';
 
 type Lang = 'en' | 'es';
 
@@ -480,15 +481,16 @@ function HotspotMedia({
 }) {
   const [active, setActive] = useState<number | null>(null);
   const activeSpot = spots.find(s => s.id === active);
+  const { containerRef, imgRef, onImgLoad, markerStyle } = useContainedImageMarkers(image);
 
   const ImageWithMarkers = () => (
-    <div className="relative w-full h-full">
-      <img src={image} alt="" className="w-full h-full object-contain block bg-gray-50" />
+    <div ref={containerRef} className="relative w-full h-full">
+      <img ref={imgRef} src={image} alt="" onLoad={onImgLoad} className="w-full h-full object-contain block bg-gray-50" />
       {spots.map(spot => (
         <button
           key={spot.id}
           onClick={() => setActive(active === spot.id ? null : spot.id)}
-          style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
+          style={markerStyle(spot.x, spot.y)}
           className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shadow-lg transition-all ${
             active === spot.id
               ? 'bg-[#0B4A7C] text-white scale-125 ring-2 ring-white ring-offset-1'

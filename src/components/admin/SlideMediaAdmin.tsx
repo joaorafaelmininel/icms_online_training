@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect, type MouseEvent } from 'react'
+import { useContainedImageMarkers } from '@/hooks/useContainedImageMarkers'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1617,7 +1618,8 @@ function HotspotBlockEditor({
   const [activeSpot, setActiveSpot] = useState<number | null>(null)
   const [uploading, setUploading]   = useState(false)
   const [uploadMsg, setUploadMsg]   = useState<string | null>(null)
-  const imgRef = useRef<HTMLInputElement>(null)
+  const { containerRef, imgRef: previewImgRef, onImgLoad, markerStyle, pointToImageXY } = useContainedImageMarkers(block.image)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const iCls = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
   const lCls = "block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1"
@@ -1667,13 +1669,13 @@ function HotspotBlockEditor({
           <div className="relative group">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={block.image} alt="" className="w-full max-h-64 object-contain rounded-lg border border-slate-200 bg-slate-50" />
-            <button onClick={() => imgRef.current?.click()}
+            <button onClick={() => fileInputRef.current?.click()}
               className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition text-white text-xs font-semibold">
               Change image
             </button>
           </div>
         ) : (
-          <div onClick={() => imgRef.current?.click()}
+          <div onClick={() => fileInputRef.current?.click()}
             className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 py-8 hover:border-slate-300 hover:bg-slate-50 transition">
             {uploading
               ? <svg className="h-6 w-6 animate-spin text-[#0B4A7C]" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
@@ -1681,7 +1683,7 @@ function HotspotBlockEditor({
             }
           </div>
         )}
-        <input ref={imgRef} type="file" accept="image/*" className="hidden"
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); e.target.value = '' }} />
         {uploadMsg && <p className="mt-1 text-xs text-emerald-600">{uploadMsg}</p>}
       </div>
@@ -1700,25 +1702,26 @@ function HotspotBlockEditor({
         </button>
       </div>
 
-      {/* Hotspot preview with clickable markers — mirrors the exact box the
-          student sees (SlideRenderer's HotspotMedia), phone frame included,
-          so a marker placed here lands in the same spot for the student.
-          Positions are always % of this clickable box, never of the raw
-          image, since object-contain can letterbox it differently in each
-          layout. */}
+      {/* Hotspot preview with clickable markers. Positions are measured
+          against the actual rendered image content (via
+          useContainedImageMarkers), not the surrounding box — a box using
+          object-contain almost never has the image's exact aspect ratio, so
+          it letterboxes, and the live slide's box is stretched by its
+          flex/grid row to match a text column of varying height per slide,
+          which this isolated preview can never reproduce pixel-for-pixel.
+          Measuring the image itself makes a marker land in the same visual
+          spot for the student no matter how each box is shaped. */}
       {block.image && (() => {
         const onPositionClick = (e: MouseEvent<HTMLDivElement>) => {
           if (!activeSpot) return
-          const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
-          const x = Math.round(((e.clientX - rect.left) / rect.width) * 100)
-          const y = Math.round(((e.clientY - rect.top) / rect.height) * 100)
+          const { x, y } = pointToImageXY(e.clientX, e.clientY)
           updateSpot(activeSpot, { x, y })
         }
         const markers = (
           <>
             {block.spots.map(s => (
               <button key={s.id} onClick={e => { e.stopPropagation(); setActiveSpot(activeSpot === s.id ? null : s.id) }}
-                style={{ left: `${s.x}%`, top: `${s.y}%` }}
+                style={markerStyle(s.x, s.y)}
                 className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold transition ${
                   activeSpot === s.id ? 'border-white bg-[#0B4A7C] text-white scale-125 ring-2 ring-blue-300' : 'border-white bg-[#0B4A7C]/80 text-white hover:scale-110'
                 }`}
@@ -1736,9 +1739,9 @@ function HotspotBlockEditor({
                     <div className="absolute top-0 left-0 right-0 h-6 bg-gray-900 z-20 flex items-center justify-center">
                       <div className="w-20 h-3 bg-gray-800 rounded-full" />
                     </div>
-                    <div className="absolute inset-0 top-6 bottom-4 overflow-hidden z-10" style={{ cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onPositionClick}>
+                    <div ref={containerRef} className="absolute inset-0 top-6 bottom-4 overflow-hidden z-10" style={{ cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onPositionClick}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={block.image} alt="" className="w-full h-full object-contain block bg-gray-50" />
+                      <img ref={previewImgRef} src={block.image} alt="" onLoad={onImgLoad} className="w-full h-full object-contain block bg-gray-50" />
                       {markers}
                     </div>
                     <div className="absolute bottom-1.5 left-0 right-0 flex justify-center z-20">
@@ -1751,14 +1754,10 @@ function HotspotBlockEditor({
                 </div>
               </div>
             ) : (
-              // Mirrors SlideRenderer's non-phone-frame HotspotMedia box exactly
-              // (relative w-full, minHeight only — no max-height cap). A cap here
-              // would shrink+left-align a wide image the student's uncapped box
-              // renders full-width, throwing off every % position between them.
               <div className="relative w-full rounded-lg overflow-hidden border border-slate-200 bg-slate-900" style={{ minHeight: 200 }}>
-                <div className="relative w-full h-full" style={{ cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onPositionClick}>
+                <div ref={containerRef} className="relative w-full h-full" style={{ cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onPositionClick}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={block.image} alt="" className="w-full h-full object-contain block bg-gray-50" />
+                  <img ref={previewImgRef} src={block.image} alt="" onLoad={onImgLoad} className="w-full h-full object-contain block bg-gray-50" />
                   {markers}
                 </div>
               </div>
