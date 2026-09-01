@@ -1751,10 +1751,16 @@ function HotspotBlockEditor({
                 </div>
               </div>
             ) : (
-              <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-900" style={{ cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onPositionClick}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={block.image} alt="" className="w-full max-h-60 object-contain" />
-                {markers}
+              // Mirrors SlideRenderer's non-phone-frame HotspotMedia box exactly
+              // (relative w-full, minHeight only — no max-height cap). A cap here
+              // would shrink+left-align a wide image the student's uncapped box
+              // renders full-width, throwing off every % position between them.
+              <div className="relative w-full rounded-lg overflow-hidden border border-slate-200 bg-slate-900" style={{ minHeight: 200 }}>
+                <div className="relative w-full h-full" style={{ cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onPositionClick}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={block.image} alt="" className="w-full h-full object-contain block bg-gray-50" />
+                  {markers}
+                </div>
               </div>
             )}
             {activeSpot && <p className="mt-1.5 text-center text-[10px] text-slate-400">Click on image to move marker {activeSpot}</p>}
