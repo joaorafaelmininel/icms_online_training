@@ -155,7 +155,7 @@ export default function ModuleViewerClient({
   const total = slides.length;
   const viewedCount = completed.size;
   const allViewed = viewedCount >= total;
-  const pct = total > 0 ? Math.round((viewedCount / total) * 100) : 0;
+  const pct = total > 0 ? Math.min(100, Math.round((viewedCount / total) * 100)) : 0;
   const currentSlide = slides.find((s) => s.slide_number === current) || null;
   const currentSlideContent =
     currentSlide?.slide_number === 1 && coverBlock

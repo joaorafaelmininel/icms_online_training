@@ -45,9 +45,22 @@ export async function markSlideViewed(
     .eq('module_id', moduleId)
     .eq('is_completed', true);
 
-  const viewedNumbers = (viewedRows || []).map(
-    (r: { slide_number: number }) => r.slide_number
+  // A slide can be deleted/renumbered by the admin after a student already
+  // viewed it, leaving orphaned rows here for slide numbers that no longer
+  // exist in the module — counting those inflates "viewed" past the
+  // current total (e.g. 12/7 = 171%). Only count numbers that still exist.
+  const { data: currentSlideRows } = await supabase
+    .from('module_slides')
+    .select('slide_number')
+    .eq('module_id', moduleId);
+
+  const currentSlideNumbers = new Set(
+    (currentSlideRows || []).map((r: { slide_number: number }) => r.slide_number)
   );
+
+  const viewedNumbers = (viewedRows || [])
+    .map((r: { slide_number: number }) => r.slide_number)
+    .filter((n: number) => currentSlideNumbers.has(n));
   const allViewed = viewedNumbers.length >= totalSlides;
 
   // 3. Upsert module progress

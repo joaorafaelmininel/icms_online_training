@@ -185,9 +185,14 @@ export default async function ModulePage({
     .eq('module_id', module.id)
     .returns<SlideProgressRow[]>()
 
+  // A slide can be deleted/renumbered by the admin after a student already
+  // viewed it, leaving orphaned user_slide_progress rows for slide numbers
+  // that no longer exist — counting those inflates "viewed" past the
+  // current total (e.g. 12/7 = 171%). Only count numbers that still exist.
+  const currentSlideNumbers = new Set(slides.map((s) => s.slide_number))
   const completedSlides =
     slideProgress
-      ?.filter((s) => s.is_completed)
+      ?.filter((s) => s.is_completed && currentSlideNumbers.has(s.slide_number))
       .map((s) => s.slide_number) ?? []
 
   /* ───────── MODULE PROGRESS ───────── */
