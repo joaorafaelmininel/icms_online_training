@@ -3,6 +3,7 @@
 
 import { useState, useRef, useCallback, useEffect, type MouseEvent } from 'react'
 import { useContainedImageMarkers } from '@/hooks/useContainedImageMarkers'
+import { useImageAspectRatio } from '@/hooks/useImageAspectRatio'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1618,7 +1619,12 @@ function HotspotBlockEditor({
   const [activeSpot, setActiveSpot] = useState<number | null>(null)
   const [uploading, setUploading]   = useState(false)
   const [uploadMsg, setUploadMsg]   = useState<string | null>(null)
+  // Phone-frame mode: fixed phone-shaped box, so marker position is
+  // measured against the rendered image content (letterboxing expected).
   const { containerRef, imgRef: previewImgRef, onImgLoad, markerStyle, pointToImageXY } = useContainedImageMarkers(block.image)
+  // Flat mode: box matches the image's own aspect ratio (no letterboxing),
+  // so plain % of the box is already % of the image.
+  const { imgRef: flatImgRef, onImgLoad: onFlatImgLoad, aspectRatio } = useImageAspectRatio()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const iCls = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
@@ -1702,26 +1708,29 @@ function HotspotBlockEditor({
         </button>
       </div>
 
-      {/* Hotspot preview with clickable markers. Positions are measured
-          against the actual rendered image content (via
-          useContainedImageMarkers), not the surrounding box — a box using
-          object-contain almost never has the image's exact aspect ratio, so
-          it letterboxes, and the live slide's box is stretched by its
-          flex/grid row to match a text column of varying height per slide,
-          which this isolated preview can never reproduce pixel-for-pixel.
-          Measuring the image itself makes a marker land in the same visual
-          spot for the student no matter how each box is shaped. */}
+      {/* Hotspot preview with clickable markers.
+          Phone-frame mode: fixed phone-shaped box, so position is measured
+          against the rendered image content (letterboxing is expected).
+          Flat mode: box matches the image's own aspect ratio, so plain %
+          of the box already equals % of the image — no correction needed. */}
       {block.image && (() => {
-        const onPositionClick = (e: MouseEvent<HTMLDivElement>) => {
+        const onFramePositionClick = (e: MouseEvent<HTMLDivElement>) => {
           if (!activeSpot) return
           const { x, y } = pointToImageXY(e.clientX, e.clientY)
           updateSpot(activeSpot, { x, y })
         }
-        const markers = (
+        const onFlatPositionClick = (e: MouseEvent<HTMLDivElement>) => {
+          if (!activeSpot) return
+          const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
+          const x = Math.round(((e.clientX - rect.left) / rect.width) * 100)
+          const y = Math.round(((e.clientY - rect.top) / rect.height) * 100)
+          updateSpot(activeSpot, { x, y })
+        }
+        const markerButtons = (style: (s: HotspotSpot) => { left: string; top: string }) => (
           <>
             {block.spots.map(s => (
               <button key={s.id} onClick={e => { e.stopPropagation(); setActiveSpot(activeSpot === s.id ? null : s.id) }}
-                style={markerStyle(s.x, s.y)}
+                style={style(s)}
                 className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold transition ${
                   activeSpot === s.id ? 'border-white bg-[#0B4A7C] text-white scale-125 ring-2 ring-blue-300' : 'border-white bg-[#0B4A7C]/80 text-white hover:scale-110'
                 }`}
@@ -1739,10 +1748,10 @@ function HotspotBlockEditor({
                     <div className="absolute top-0 left-0 right-0 h-6 bg-gray-900 z-20 flex items-center justify-center">
                       <div className="w-20 h-3 bg-gray-800 rounded-full" />
                     </div>
-                    <div ref={containerRef} className="absolute inset-0 top-6 bottom-4 overflow-hidden z-10" style={{ cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onPositionClick}>
+                    <div ref={containerRef} className="absolute inset-0 top-6 bottom-4 overflow-hidden z-10" style={{ cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onFramePositionClick}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img ref={previewImgRef} src={block.image} alt="" onLoad={onImgLoad} className="w-full h-full object-contain block bg-gray-50" />
-                      {markers}
+                      {markerButtons(s => markerStyle(s.x, s.y))}
                     </div>
                     <div className="absolute bottom-1.5 left-0 right-0 flex justify-center z-20">
                       <div className="w-16 h-1 bg-gray-600 rounded-full" />
@@ -1754,12 +1763,10 @@ function HotspotBlockEditor({
                 </div>
               </div>
             ) : (
-              <div className="relative w-full rounded-lg overflow-hidden border border-slate-200 bg-slate-900" style={{ minHeight: 200 }}>
-                <div ref={containerRef} className="relative w-full h-full" style={{ cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onPositionClick}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img ref={previewImgRef} src={block.image} alt="" onLoad={onImgLoad} className="w-full h-full object-contain block bg-gray-50" />
-                  {markers}
-                </div>
+              <div className="relative w-full rounded-lg overflow-hidden border border-slate-200 bg-slate-900" style={{ aspectRatio: aspectRatio || 16 / 9, cursor: activeSpot ? 'crosshair' : 'default' }} onClick={onFlatPositionClick}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img ref={flatImgRef} src={block.image} alt="" onLoad={onFlatImgLoad} className="w-full h-full object-contain block bg-gray-50" />
+                {markerButtons(s => ({ left: `${s.x}%`, top: `${s.y}%` }))}
               </div>
             )}
             {activeSpot && <p className="mt-1.5 text-center text-[10px] text-slate-400">Click on image to move marker {activeSpot}</p>}

@@ -4,6 +4,7 @@
 import { useState, useRef } from 'react';
 import type { ContentBlock, SlideLayout } from '@/lib/types/slides';
 import { useContainedImageMarkers } from '@/hooks/useContainedImageMarkers';
+import { useImageAspectRatio } from '@/hooks/useImageAspectRatio';
 
 type Lang = 'en' | 'es';
 
@@ -481,29 +482,46 @@ function HotspotMedia({
 }) {
   const [active, setActive] = useState<number | null>(null);
   const activeSpot = spots.find(s => s.id === active);
+  // Phone-frame mode has a fixed phone-shaped box the image is meant to be
+  // letterboxed into, so marker position there is measured against the
+  // rendered image content (see useContainedImageMarkers).
   const { containerRef, imgRef, onImgLoad, markerStyle } = useContainedImageMarkers(image);
+  // Flat (no frame) mode has no such fixed shape — the box is sized to
+  // match the image's own aspect ratio, so it never letterboxes and a
+  // marker's x/y as plain % of the box is already its % of the image.
+  const { imgRef: flatImgRef, onImgLoad: onFlatImgLoad, aspectRatio } = useImageAspectRatio();
+
+  const markerButtons = (style: (spot: HotspotSpot) => { left: string; top: string }) =>
+    spots.map(spot => (
+      <button
+        key={spot.id}
+        onClick={() => setActive(active === spot.id ? null : spot.id)}
+        style={style(spot)}
+        className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shadow-lg transition-all ${
+          active === spot.id
+            ? 'bg-[#0B4A7C] text-white scale-125 ring-2 ring-white ring-offset-1'
+            : 'bg-[#0B4A7C]/90 text-white hover:scale-110 hover:bg-[#0B4A7C]'
+        }`}
+      >
+        {/* Pulse ring on inactive */}
+        {active !== spot.id && (
+          <span className="absolute inline-flex h-full w-full rounded-full bg-[#0B4A7C]/40 animate-ping" />
+        )}
+        {spot.id}
+      </button>
+    ));
 
   const ImageWithMarkers = () => (
     <div ref={containerRef} className="relative w-full h-full">
       <img ref={imgRef} src={image} alt="" onLoad={onImgLoad} className="w-full h-full object-contain block bg-gray-50" />
-      {spots.map(spot => (
-        <button
-          key={spot.id}
-          onClick={() => setActive(active === spot.id ? null : spot.id)}
-          style={markerStyle(spot.x, spot.y)}
-          className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shadow-lg transition-all ${
-            active === spot.id
-              ? 'bg-[#0B4A7C] text-white scale-125 ring-2 ring-white ring-offset-1'
-              : 'bg-[#0B4A7C]/90 text-white hover:scale-110 hover:bg-[#0B4A7C]'
-          }`}
-        >
-          {/* Pulse ring on inactive */}
-          {active !== spot.id && (
-            <span className="absolute inline-flex h-full w-full rounded-full bg-[#0B4A7C]/40 animate-ping" />
-          )}
-          {spot.id}
-        </button>
-      ))}
+      {markerButtons(spot => markerStyle(spot.x, spot.y))}
+    </div>
+  );
+
+  const FlatImageWithMarkers = () => (
+    <div className="relative w-full" style={{ aspectRatio: aspectRatio || 16 / 9 }}>
+      <img ref={flatImgRef} src={image} alt="" onLoad={onFlatImgLoad} className="w-full h-full object-contain block bg-gray-50" />
+      {markerButtons(spot => ({ left: `${spot.x}%`, top: `${spot.y}%` }))}
     </div>
   );
 
@@ -533,9 +551,7 @@ function HotspotMedia({
               <div className="absolute -left-3 top-24 w-1.5 h-6 bg-gray-700 rounded-l-sm" />
             </div>
           ) : (
-            <div className="relative w-full" style={{ minHeight: 200 }}>
-              <ImageWithMarkers />
-            </div>
+            <FlatImageWithMarkers />
           )}
         </div>
 
