@@ -124,6 +124,34 @@ export default async function ModulePage({
     .order('module_number')
     .returns<ModuleRow[]>()
 
+  /* ───────── SEQUENTIAL LOCK ─────────
+   * Direct URL access must respect the same "finish the previous module"
+   * rule the course overview already enforces client-side — otherwise a
+   * student can type /modules/8 and skip straight past the quizzes. */
+
+  if (moduleNumber > 1) {
+    const prevMod = (allModules ?? []).find(
+      (m) => m.module_number === moduleNumber - 1
+    )
+
+    if (prevMod) {
+      const { data: prevProgress } = await supabase
+        .from('user_module_progress')
+        .select('is_completed, quiz_passed')
+        .eq('user_id', user.id)
+        .eq('module_id', prevMod.id)
+        .maybeSingle<{ is_completed: boolean; quiz_passed: boolean }>()
+
+      const prevCompleted =
+        !!prevProgress?.is_completed &&
+        (prevProgress.quiz_passed || !prevMod.quiz_required)
+
+      if (!prevCompleted) {
+        redirect(`/courses/${course.slug}`)
+      }
+    }
+  }
+
   /* ───────── SLIDES ───────── */
 
   const { data: slidesDB } = await supabase

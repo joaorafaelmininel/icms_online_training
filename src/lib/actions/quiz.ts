@@ -2,6 +2,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { recalculateEnrollmentProgress } from './progress';
 import type { QuizResult, QuestionResult } from '@/lib/types/quiz';
 
 interface SubmitQuizInput {
@@ -149,38 +150,10 @@ export async function submitQuiz(input: SubmitQuizInput): Promise<{
         .eq('id', existingProgress.id);
     }
 
-    // 8. If passed, update enrollment progress
-    if (passed) {
-      // Count total completed modules
-      const { data: allProgress } = await supabase
-        .from('user_module_progress')
-        .select('is_completed')
-        .eq('user_id', user.id)
-        .eq('course_id', input.courseId);
-
-      const completedCount = (allProgress || []).filter((p: any) => p.is_completed).length;
-
-      const { data: totalModules } = await supabase
-        .from('course_modules')
-        .select('id')
-        .eq('course_id', input.courseId);
-
-      const totalCount = totalModules?.length || 0;
-      const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-      const allComplete = completedCount >= totalCount && totalCount > 0;
-
-      await supabase
-        .from('course_enrollments')
-        .update({
-          progress_percentage: progressPct,
-          current_module_number: completedCount + 1,
-          final_exam_unlocked: allComplete,
-          status: allComplete ? 'completed' : 'in_progress',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id)
-        .eq('course_id', input.courseId);
-    }
+    // 8. Keep enrollment-level progress/unlock state in sync — a module
+    // only truly counts as done once its quiz is passed (when required),
+    // so this recalculates against that same definition either way.
+    await recalculateEnrollmentProgress(supabase, user.id, input.courseId);
 
     return {
       success: true,

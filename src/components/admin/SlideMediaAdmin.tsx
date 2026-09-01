@@ -192,6 +192,16 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
   const [importText,      setImportText     ] = useState('')
   const [importing,       setImporting      ] = useState(false)
   const [importError,     setImportError    ] = useState<string | null>(null)
+  const [quizImportOpen,  setQuizImportOpen ] = useState(false)
+  const [quizImportText,  setQuizImportText ] = useState('')
+  const [quizImporting,   setQuizImporting  ] = useState(false)
+  const [quizImportError, setQuizImportError] = useState<string | null>(null)
+  const [quizImportMsg,   setQuizImportMsg  ] = useState<string | null>(null)
+  const [examImportOpen,  setExamImportOpen ] = useState(false)
+  const [examImportText,  setExamImportText ] = useState('')
+  const [examImporting,   setExamImporting  ] = useState(false)
+  const [examImportError, setExamImportError] = useState<string | null>(null)
+  const [examImportMsg,   setExamImportMsg  ] = useState<string | null>(null)
 
   function pickCourse(course: CourseData) {
     setSelectedCourse(course); setSelectedModule(null); setSelectedSlide(null)
@@ -310,6 +320,70 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
     }
   }
 
+  async function handleQuizBulkImport() {
+    if (!selectedModule) return
+    let questions: any
+    try {
+      questions = JSON.parse(quizImportText)
+    } catch {
+      setQuizImportError('Invalid JSON — could not parse.')
+      return
+    }
+    if (!Array.isArray(questions) || questions.length === 0) {
+      setQuizImportError('Expected a non-empty JSON array of questions.')
+      return
+    }
+
+    setQuizImporting(true); setQuizImportError(null)
+    try {
+      const res  = await fetch('/api/admin/quiz/bulk-import', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduleId: selectedModule.id, questions }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to import quiz questions')
+
+      setQuizImportOpen(false); setQuizImportText('')
+      setQuizImportMsg(`${data.questions.length} question(s) imported for ${loc(selectedModule.title)}.`)
+    } catch (err: any) {
+      setQuizImportError(err.message)
+    } finally {
+      setQuizImporting(false)
+    }
+  }
+
+  async function handleExamBulkImport() {
+    if (!selectedCourse) return
+    let questions: any
+    try {
+      questions = JSON.parse(examImportText)
+    } catch {
+      setExamImportError('Invalid JSON — could not parse.')
+      return
+    }
+    if (!Array.isArray(questions) || questions.length === 0) {
+      setExamImportError('Expected a non-empty JSON array of questions.')
+      return
+    }
+
+    setExamImporting(true); setExamImportError(null)
+    try {
+      const res  = await fetch('/api/admin/final-exam/bulk-import', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseId: selectedCourse.id, questions }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to import final exam questions')
+
+      setExamImportOpen(false); setExamImportText('')
+      setExamImportMsg(`${data.questions.length} question(s) imported into the final exam bank.`)
+    } catch (err: any) {
+      setExamImportError(err.message)
+    } finally {
+      setExamImporting(false)
+    }
+  }
+
   return (
     <div className="flex h-screen flex-col overflow-hidden" style={{ background: '#F0F4F8' }}>
 
@@ -383,6 +457,19 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
                         </span>
                       </button>
                     ))}
+                    <button
+                      onClick={() => { setExamImportOpen(true); setExamImportError(null); setExamImportMsg(null) }}
+                      title="Import Final Exam (JSON)"
+                      className="mx-4 mt-1.5 flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-500 transition hover:bg-slate-50"
+                    >
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Import Final Exam
+                    </button>
+                    {examImportMsg && (
+                      <p className="mx-4 mt-1 text-[10px] text-emerald-600">{examImportMsg}</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -420,7 +507,19 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 16.5V9m0 7.5l-3-3m3 3l3-3M4.5 19.5h15a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5h-15A1.5 1.5 0 003 6v12a1.5 1.5 0 001.5 1.5z" />
                   </svg>
                 </button>
+                <button
+                  onClick={() => { setQuizImportOpen(true); setQuizImportError(null); setQuizImportMsg(null) }}
+                  title="Import Quiz Questions (JSON)"
+                  className="flex items-center justify-center rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-slate-600 transition hover:bg-slate-50"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
               </div>
+            )}
+            {quizImportMsg && (
+              <p className="mt-1.5 text-[10px] text-emerald-600">{quizImportMsg}</p>
             )}
             {createError && (
               <p className="mt-1.5 text-[10px] text-red-500">{createError}</p>
@@ -536,6 +635,108 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
                   </svg>
                 )}
                 {importing ? 'Importing...' : 'Import'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Import Quiz Questions modal ── */}
+      {quizImportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-6">
+          <div className="flex w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800">Import Quiz Questions</h3>
+                <p className="text-xs text-slate-400">
+                  Paste a JSON array of questions — appended to {selectedModule ? loc(selectedModule.title) : 'this module'}&rsquo;s quiz. Importing also turns the quiz on for this module.
+                </p>
+              </div>
+              <button onClick={() => { setQuizImportOpen(false); setQuizImportError(null) }}
+                className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="px-5 py-4">
+              <textarea
+                rows={14}
+                value={quizImportText}
+                onChange={e => setQuizImportText(e.target.value)}
+                placeholder={'[\n  {\n    "question_text": { "en": "...", "es": "..." },\n    "question_type": "multiple_choice",\n    "options": [\n      { "id": "a", "text": { "en": "...", "es": "..." } },\n      { "id": "b", "text": { "en": "...", "es": "..." } }\n    ],\n    "correct_answer": "a",\n    "explanation": { "en": "...", "es": "..." },\n    "points": 20\n  }\n]'}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs leading-relaxed text-slate-700 outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
+              />
+              {quizImportError && (
+                <p className="mt-2 text-xs text-red-600">{quizImportError}</p>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-3">
+              <button onClick={() => { setQuizImportOpen(false); setQuizImportError(null) }}
+                className="rounded-md px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50">
+                Cancel
+              </button>
+              <button onClick={handleQuizBulkImport} disabled={quizImporting || !quizImportText.trim()}
+                className="flex items-center gap-1.5 rounded-md px-4 py-1.5 text-xs font-bold text-white transition disabled:opacity-50"
+                style={{ background: '#0B4A7C' }}>
+                {quizImporting && (
+                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+                {quizImporting ? 'Importing...' : 'Import'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Import Final Exam modal ── */}
+      {examImportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-6">
+          <div className="flex w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800">Import Final Exam Questions</h3>
+                <p className="text-xs text-slate-400">
+                  Paste a JSON array of questions — appended to {selectedCourse ? loc(selectedCourse.title) : 'this course'}&rsquo;s final exam bank (course-wide, not per module).
+                </p>
+              </div>
+              <button onClick={() => { setExamImportOpen(false); setExamImportError(null) }}
+                className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="px-5 py-4">
+              <textarea
+                rows={14}
+                value={examImportText}
+                onChange={e => setExamImportText(e.target.value)}
+                placeholder={'[\n  {\n    "question_text": { "en": "...", "es": "..." },\n    "options": [\n      { "id": "a", "text": { "en": "...", "es": "..." } },\n      { "id": "b", "text": { "en": "...", "es": "..." } }\n    ],\n    "correct_answer": "a",\n    "explanation": { "en": "...", "es": "..." },\n    "points": 10,\n    "source_module": 1\n  }\n]'}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs leading-relaxed text-slate-700 outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
+              />
+              {examImportError && (
+                <p className="mt-2 text-xs text-red-600">{examImportError}</p>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-3">
+              <button onClick={() => { setExamImportOpen(false); setExamImportError(null) }}
+                className="rounded-md px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50">
+                Cancel
+              </button>
+              <button onClick={handleExamBulkImport} disabled={examImporting || !examImportText.trim()}
+                className="flex items-center gap-1.5 rounded-md px-4 py-1.5 text-xs font-bold text-white transition disabled:opacity-50"
+                style={{ background: '#0B4A7C' }}>
+                {examImporting && (
+                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+                {examImporting ? 'Importing...' : 'Import'}
               </button>
             </div>
           </div>

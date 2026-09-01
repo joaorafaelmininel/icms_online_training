@@ -2,6 +2,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { recalculateEnrollmentProgress } from './progress';
 
 /**
  * Marks a slide as viewed and updates module progress accordingly.
@@ -107,6 +108,11 @@ export async function markSlideViewed(
       .update({ last_accessed_at: new Date().toISOString() })
       .eq('id', enrollmentId);
   }
+
+  // Keep the enrollment-level percentage/current-module in sync — a
+  // student who has read every slide but not yet taken the quiz should
+  // still see accurate (if not-yet-100%) progress on the dashboard.
+  await recalculateEnrollmentProgress(supabase, user.id, courseId);
 
   return { viewedNumbers, allViewed };
 }
