@@ -128,9 +128,15 @@ export default function ModuleViewerClient({
   const [isPending, startTransition] = useTransition();
 
   // ─── State ──────────────────────────────────────────────────────────────────
+  // slide_number isn't guaranteed to be a gap-free 1..N sequence (a module
+  // can end up with e.g. only 42 rows whose numbers run up to 44) — clamping
+  // against slides.length can land on a number nothing actually has. Resume
+  // at the saved slide if it still exists, otherwise the first real slide.
   const resumeSlide = moduleProgress?.current_slide || 1;
-  const [current, setCurrent] = useState(
-    Math.min(Math.max(resumeSlide, 1), slides.length || 1)
+  const [current, setCurrent] = useState(() =>
+    slides.some((s) => s.slide_number === resumeSlide)
+      ? resumeSlide
+      : slides[0]?.slide_number ?? 1
   );
   const [completed, setCompleted] = useState<Set<number>>(new Set(initialCompleted));
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -179,15 +185,28 @@ export default function ModuleViewerClient({
   }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Navigation ─────────────────────────────────────────────────────────────
+  // goTo takes a slide_number and only moves if a slide actually has it —
+  // bounding by count (n <= total) breaks the moment slide_number has any
+  // gap, since a real trailing slide can be numbered past the row count.
   const goTo = useCallback(
     (n: number) => {
-      if (n >= 1 && n <= total) setCurrent(n);
+      if (slides.some((s) => s.slide_number === n)) setCurrent(n);
     },
-    [total]
+    [slides]
   );
 
-  const goNext = useCallback(() => goTo(current + 1), [current, goTo]);
-  const goPrev = useCallback(() => goTo(current - 1), [current, goTo]);
+  // Next/Prev move by position in the (server-ordered) slides array, not by
+  // adding/subtracting 1 from slide_number — so they still work across a
+  // gap instead of aiming at a number that doesn't exist and going nowhere.
+  const currentIndex = slides.findIndex((s) => s.slide_number === current);
+  const goToIndex = useCallback(
+    (idx: number) => {
+      if (idx >= 0 && idx < slides.length) setCurrent(slides[idx].slide_number);
+    },
+    [slides]
+  );
+  const goNext = useCallback(() => goToIndex(currentIndex + 1), [currentIndex, goToIndex]);
+  const goPrev = useCallback(() => goToIndex(currentIndex - 1), [currentIndex, goToIndex]);
 
   // Selecting a slide from the overlay menu on phones/tablets should also
   // dismiss it, so the reader isn't left tapping the toggle a second time.
@@ -441,7 +460,7 @@ export default function ModuleViewerClient({
               )}
 
               {/* ── Completion CTA (on last slide when all viewed) ────────────── */}
-              {allViewed && current === total && (
+              {allViewed && currentIndex === slides.length - 1 && (
                 <div className={`mt-10 rounded-xl border-2 border-dashed p-6 text-center sm:p-8 ${
                   isLastModule && (quizPassed || !mod.has_quiz)
                     ? 'border-[#0B4A7C]/30 bg-[#0B4A7C]/5'
@@ -530,7 +549,7 @@ export default function ModuleViewerClient({
             {/* Previous */}
             <button
               onClick={goPrev}
-              disabled={current <= 1}
+              disabled={currentIndex <= 0}
               className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 disabled:pointer-events-none disabled:opacity-30"
             >
               <ChevronLeftIcon />
@@ -557,20 +576,20 @@ export default function ModuleViewerClient({
                   ))
                 ) : (
                   <span className="text-xs font-medium tabular-nums text-gray-400">
-                    {current} / {total}
+                    {currentIndex + 1} / {total}
                   </span>
                 )}
               </div>
               {/* Counter for desktop */}
               <span className="hidden text-sm font-medium tabular-nums text-gray-500 sm:block">
-                {current} {t.of} {total}
+                {currentIndex + 1} {t.of} {total}
               </span>
             </div>
 
             {/* Next */}
             <button
               onClick={goNext}
-              disabled={current >= total}
+              disabled={currentIndex >= slides.length - 1}
               className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 disabled:pointer-events-none disabled:opacity-30"
             >
               <span className="hidden sm:inline">{t.next}</span>
