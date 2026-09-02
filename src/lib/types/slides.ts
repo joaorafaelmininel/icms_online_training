@@ -25,6 +25,10 @@ export interface ImageBlock {
   url: string;
   alt?: LocalizedField;
   caption?: LocalizedField;
+  /** Where this image renders: 'side' (default — next to the text, existing
+   *  behavior) or 'below' (full width beneath all text, e.g. a large system
+   *  screenshot). */
+  display?: 'side' | 'below';
 }
 
 export interface VideoBlock {

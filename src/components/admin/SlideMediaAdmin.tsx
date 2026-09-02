@@ -21,7 +21,7 @@ interface HotspotSpot {
 type ContentBlock =
   | { type: 'heading';   level?: number; text: LocalizedField }
   | { type: 'paragraph'; text: LocalizedField }
-  | { type: 'image';     url: string; alt?: LocalizedField; caption?: LocalizedField }
+  | { type: 'image';     url: string; alt?: LocalizedField; caption?: LocalizedField; display?: 'side' | 'below' }
   | { type: 'video';     url_en: string; url_es: string; poster?: string; caption?: LocalizedField }
   | { type: 'audio';     url_en: string; url_es: string; caption?: LocalizedField }
   | { type: 'list';      ordered?: boolean; items: LocalizedField[] }
@@ -846,6 +846,15 @@ function SlideEditor({
     await saveContent(next)
   }
 
+  // Where an image block renders: 'side' (default, next to the text — existing
+  // behavior) or 'below' (full width beneath all text, e.g. for a large
+  // system screenshot).
+  async function setImageDisplay(index: number, display: 'side' | 'below') {
+    const next = content.map((b, i) => i === index ? { ...b, display } : b)
+    try { await saveContent(next) }
+    catch (err: any) { setUploadMsg({ type: 'error', text: err.message }) }
+  }
+
   // Upload directly to Supabase Storage from the browser — bypasses Next.js body limit
   async function uploadFile(file: File, type: MediaType): Promise<string> {
     const { createClient } = await import('@/lib/supabase/client')
@@ -1213,8 +1222,25 @@ function SlideEditor({
                         </div>
                         <div className="p-3 space-y-2">
                           {block.type === 'image' && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={bk.url} alt="" className="max-h-40 w-full rounded-lg object-contain bg-slate-50" />
+                            <>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={bk.url} alt="" className="max-h-40 w-full rounded-lg object-contain bg-slate-50" />
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Position</span>
+                                <div className="flex gap-1 rounded-md border border-slate-200 p-0.5">
+                                  <button onClick={() => setImageDisplay(idx, 'side')}
+                                    className={`rounded px-2 py-1 text-[10px] font-semibold transition ${
+                                      (bk.display ?? 'side') === 'side' ? 'bg-[#0B4A7C] text-white' : 'text-slate-500 hover:text-slate-700'
+                                    }`}
+                                  >Side (next to text)</button>
+                                  <button onClick={() => setImageDisplay(idx, 'below')}
+                                    className={`rounded px-2 py-1 text-[10px] font-semibold transition ${
+                                      bk.display === 'below' ? 'bg-[#0B4A7C] text-white' : 'text-slate-500 hover:text-slate-700'
+                                    }`}
+                                  >Below (full width)</button>
+                                </div>
+                              </div>
+                            </>
                           )}
                           {(block.type === 'video' || block.type === 'audio') && (
                             <>

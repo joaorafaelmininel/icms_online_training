@@ -30,38 +30,54 @@ export default function SlideRenderer({ content, layout, language }: Props) {
     );
   }
 
-  const textBlocks  = content.filter(b => ['heading','paragraph','list','callout'].includes(b.type));
-  const mediaBlocks = content.filter(b => ['image','video','audio','hotspot'].includes(b.type));
+  // Images marked display:'below' (e.g. a large system screenshot) render
+  // full width beneath everything else, instead of sharing the media
+  // column — pulled out of the normal flow up front so the existing
+  // side-by-side layout below is computed exactly as it always was.
+  const belowImages = content.filter(b => b.type === 'image' && b.display === 'below');
+  const inlineContent = belowImages.length > 0 ? content.filter(b => !belowImages.includes(b)) : content;
+
+  const textBlocks  = inlineContent.filter(b => ['heading','paragraph','list','callout'].includes(b.type));
+  const mediaBlocks = inlineContent.filter(b => ['image','video','audio','hotspot'].includes(b.type));
   const hasMedia    = mediaBlocks.length > 0;
   const hasText     = textBlocks.length > 0;
 
   // Two-column layout: text left, media right
-  if (hasText && hasMedia) {
-    return (
-      <div className="flex gap-8 lg:gap-12 items-start">
-        {/* Left: text content */}
-        <div className="flex-1 min-w-0 space-y-5">
-          {textBlocks.map((block, i) => (
-            <Block key={i} block={block} lang={language} />
-          ))}
-        </div>
-        {/* Right: media — widened ~2.5cm (95px) beyond the base 45% column,
-            which also nudges the text column left via the shared flex row. */}
-        <div className="w-[calc(45%+95px)] shrink-0 space-y-4">
-          {mediaBlocks.map((block, i) => (
-            <Block key={i} block={block} lang={language} />
-          ))}
-        </div>
+  const main = hasText && hasMedia ? (
+    <div className="flex gap-8 lg:gap-12 items-start">
+      {/* Left: text content */}
+      <div className="flex-1 min-w-0 space-y-5">
+        {textBlocks.map((block, i) => (
+          <Block key={i} block={block} lang={language} />
+        ))}
       </div>
-    );
-  }
-
-  // Text only or media only — single column
-  return (
+      {/* Right: media — widened ~2.5cm (95px) beyond the base 45% column,
+          which also nudges the text column left via the shared flex row. */}
+      <div className="w-[calc(45%+95px)] shrink-0 space-y-4">
+        {mediaBlocks.map((block, i) => (
+          <Block key={i} block={block} lang={language} />
+        ))}
+      </div>
+    </div>
+  ) : (
+    // Text only or media only — single column
     <div className="space-y-6">
-      {content.map((block, i) => (
+      {inlineContent.map((block, i) => (
         <Block key={i} block={block} lang={language} />
       ))}
+    </div>
+  );
+
+  if (belowImages.length === 0) return main;
+
+  return (
+    <div className="space-y-8">
+      {main}
+      <div className="space-y-6">
+        {belowImages.map((block, i) => (
+          <Block key={i} block={block} lang={language} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -82,6 +98,7 @@ function Block({ block, lang }: { block: ContentBlock; lang: Lang }) {
           url={block.url}
           alt={loc(block.alt, lang)}
           caption={loc(block.caption, lang)}
+          large={block.display === 'below'}
         />
       );
     case 'video': {
@@ -198,16 +215,24 @@ function ImageMedia({
   url,
   alt,
   caption,
+  large,
 }: {
   url: string;
   alt: string;
   caption: string;
+  /** 'below' placement — rendered at full slide width with no height cap,
+   *  since it isn't sharing a row with the text column. Existing side-by-
+   *  side images are unaffected (large defaults to false). */
+  large?: boolean;
 }) {
   const [error, setError] = useState(false);
 
   return (
     <figure className="overflow-hidden rounded-xl border border-gray-100 bg-gray-50 shadow-sm">
-      <div className="relative flex items-center justify-center bg-gray-100" style={{ minHeight: '200px' }}>
+      <div
+        className="relative flex items-center justify-center bg-gray-100"
+        style={large ? undefined : { minHeight: '200px' }}
+      >
         {error ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-300">
             <svg className="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,7 +249,7 @@ function ImageMedia({
           <img
             src={url}
             alt={alt || ''}
-            className="max-h-[595px] w-full object-contain"
+            className={large ? 'w-full h-auto object-contain' : 'max-h-[595px] w-full object-contain'}
             onError={() => setError(true)}
             loading="lazy"
           />
