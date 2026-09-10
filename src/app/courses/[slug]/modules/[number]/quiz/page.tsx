@@ -115,16 +115,37 @@ export default async function QuizPage({ params }: Props) {
 
   const moduleProgress = moduleProgressResult.data as ModuleProgressRow | null
 
-  // Slide count is derived from actual slide rows, not the stored `total_slides`
-  // counter on course_modules — stays correct as slides are added over time.
-  const { count: actualSlideCount } = await supabase
-    .from('module_slides')
-    .select('id', { count: 'exact', head: true })
+  // Completion is checked live against user_slide_progress rather than
+  // trusting the completed_slides snapshot on user_module_progress — that
+  // snapshot can lag (or have been written before a slide_number gap was
+  // fixed, before which some slides were genuinely unreachable), so a
+  // student who has actually viewed every current slide could otherwise
+  // stay locked out here even after re-walking the module. Also filters
+  // out progress rows for slide numbers that no longer exist (deleted /
+  // renumbered slides), same as the module page's own slide list.
+  const { data: slideProgressRows } = await supabase
+    .from('user_slide_progress')
+    .select('slide_number, is_completed')
+    .eq('user_id', user.id)
     .eq('module_id', mod.id)
 
-  const totalSlides = actualSlideCount ?? 0
-  const completedSlides = moduleProgress?.completed_slides?.length ?? 0
-  const slidesComplete = completedSlides >= totalSlides
+  // Slide count/numbers are derived from actual slide rows, not the stored
+  // `total_slides` counter on course_modules — stays correct as slides are
+  // added, removed, or renumbered over time.
+  const { data: currentSlideRows } = await supabase
+    .from('module_slides')
+    .select('slide_number')
+    .eq('module_id', mod.id)
+
+  const currentSlideNumbers = new Set(
+    (currentSlideRows || []).map((r: { slide_number: number }) => r.slide_number)
+  )
+  const totalSlides = currentSlideNumbers.size
+  const completedSlides = (slideProgressRows || []).filter(
+    (r: { slide_number: number; is_completed: boolean }) =>
+      r.is_completed && currentSlideNumbers.has(r.slide_number)
+  ).length
+  const slidesComplete = totalSlides > 0 && completedSlides >= totalSlides
 
   if (!slidesComplete) {
     redirect(`/courses/${slug}/modules/${number}`)
