@@ -140,6 +140,7 @@ export default function ModuleViewerClient({
   );
   const [completed, setCompleted] = useState<Set<number>>(new Set(initialCompleted));
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const slideAreaRef = useRef<HTMLDivElement>(null);
 
   // If slide 1's first content block is a "hero" cover, show it as a
@@ -177,7 +178,22 @@ export default function ModuleViewerClient({
       setCompleted((prev) => new Set(prev).add(current));
 
       startTransition(async () => {
-        await markSlideViewed(mod.id, course.id, enrollmentId, current, total);
+        // startTransition doesn't await this callback or catch anything it
+        // throws — an exception here becomes an unhandled promise
+        // rejection that never reaches Vercel's server logs and never
+        // reaches the student either, which is exactly how a save could
+        // fail completely silently. Catch + surface it as a visible
+        // banner instead, both for a returned {error} and a hard throw.
+        try {
+          const result = await markSlideViewed(mod.id, course.id, enrollmentId, current, total);
+          if (result?.error) {
+            setSaveError(result.error);
+          } else {
+            setSaveError(null);
+          }
+        } catch (err) {
+          setSaveError(err instanceof Error ? err.message : 'Failed to save progress');
+        }
       });
     }
     // Scroll to top of slide area
@@ -296,6 +312,23 @@ export default function ModuleViewerClient({
           </a>
         </div>
       </header>
+
+      {/* ── SAVE ERROR BANNER — surfaces a failed progress write, which would
+           otherwise fail completely silently (no server log, no thrown
+           error the student would ever see) ─────────────────────────────── */}
+      {saveError && (
+        <div className="z-30 flex items-center justify-between gap-3 bg-red-50 px-4 py-2 text-xs text-red-700 border-b border-red-200 sm:px-6">
+          <span>
+            <strong>Progress not saved:</strong> {saveError}
+          </span>
+          <button
+            onClick={() => setSaveError(null)}
+            className="shrink-0 rounded px-2 py-0.5 font-medium text-red-600 hover:bg-red-100"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* ── COVER SCREEN — shown once before the slide sequence starts ────────── */}
       {showCover && coverBlock ? (
