@@ -213,6 +213,16 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
   }
   function onSlideContentUpdated(slideId: string, newContent: ContentBlock[]) {
     setSelectedSlide(prev => prev?.id === slideId ? { ...prev, content: newContent } : prev)
+    // The sidebar slide list (and re-picking a slide from it) reads from
+    // selectedModule.module_slides, not selectedCourse — leaving this out
+    // meant a save looked successful (selectedSlide updated in place) but
+    // clicking to another slide and back re-selected the stale copy still
+    // sitting in selectedModule, making a real, persisted save look like it
+    // had silently reverted. Mirrors what onSlideTitleUpdated already does.
+    setSelectedModule(prev => prev
+      ? { ...prev, module_slides: prev.module_slides.map(s => s.id === slideId ? { ...s, content: newContent } : s) }
+      : prev
+    )
     setSelectedCourse(prev => !prev ? prev : {
       ...prev,
       course_modules: prev.course_modules.map(m => ({
