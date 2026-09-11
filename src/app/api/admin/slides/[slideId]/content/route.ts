@@ -85,9 +85,22 @@ export async function PATCH(
       .from('module_slides')
       .update({ title: body.title, updated_at: new Date().toISOString() } as never)
       .eq('id', params.slideId)
+      .select('id')
 
     if (titleUpdateResult.error) {
       return NextResponse.json({ error: titleUpdateResult.error.message }, { status: 500 })
+    }
+
+    // Postgrest returns { data: [], error: null } — not an error — when an
+    // UPDATE matches zero rows, which is exactly what happens when a Row
+    // Level Security policy silently blocks the write: the request looks
+    // like a 200 success to the admin panel even though nothing was saved.
+    // .select() forces the affected rows back so we can tell the two apart.
+    if (!titleUpdateResult.data || titleUpdateResult.data.length === 0) {
+      return NextResponse.json(
+        { error: 'Update did not affect any rows (likely blocked by a row-level security policy on module_slides)' },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({ title: body.title })
@@ -129,9 +142,19 @@ export async function PATCH(
     .from('module_slides')
     .update(updatePayload as never)
     .eq('id', params.slideId)
+    .select('id')
 
   if (updateResult.error) {
     return NextResponse.json({ error: updateResult.error.message }, { status: 500 })
+  }
+
+  // See the comment on the update_title path above — a zero-row result
+  // here is a silent RLS block, not a real success.
+  if (!updateResult.data || updateResult.data.length === 0) {
+    return NextResponse.json(
+      { error: 'Update did not affect any rows (likely blocked by a row-level security policy on module_slides)' },
+      { status: 500 }
+    )
   }
 
   return NextResponse.json({ content: blocks })

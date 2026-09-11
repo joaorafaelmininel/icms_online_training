@@ -30,7 +30,14 @@ export async function markSlideViewed(
   );
 
   // 1. Upsert slide as completed
-  const { error: slideErr } = await supabase
+  //
+  // Postgrest returns { data: [], error: null } — not an error — when a
+  // write matches zero rows, which is exactly what a Row Level Security
+  // policy silently blocking the write looks like: the caller sees a
+  // "success" with nothing actually persisted. .select() forces the
+  // affected row(s) back so a silent RLS block can be told apart from a
+  // real success instead of disappearing completely.
+  const { data: slideUpsertData, error: slideErr } = await supabase
     .from('user_slide_progress')
     .upsert(
       {
@@ -41,9 +48,17 @@ export async function markSlideViewed(
         completed_at: new Date().toISOString(),
       },
       { onConflict: 'user_id,module_id,slide_number' }
-    );
+    )
+    .select('id');
 
   if (slideErr) return { error: slideErr.message };
+
+  if (!slideUpsertData || slideUpsertData.length === 0) {
+    console.error(
+      `[markSlideViewed] user_slide_progress upsert affected 0 rows (likely blocked by RLS) — user=${user.id}, module=${moduleId}, slide=${slideNumber}`
+    );
+    return { error: 'user_slide_progress write did not persist (likely blocked by row-level security)' };
+  }
 
   // 2. Fetch all completed slides for this module
   const { data: viewedRows } = await supabase
@@ -80,7 +95,7 @@ export async function markSlideViewed(
     .maybeSingle();
 
   if (existing) {
-    const { error: moduleProgressErr } = await supabase
+    const { data: moduleProgressData, error: moduleProgressErr } = await supabase
       .from('user_module_progress')
       .update({
         current_slide: slideNumber,
@@ -89,7 +104,8 @@ export async function markSlideViewed(
         completed_at: allViewed ? new Date().toISOString() : null,
         last_accessed_at: new Date().toISOString(),
       })
-      .eq('id', existing.id);
+      .eq('id', existing.id)
+      .select('id');
 
     if (moduleProgressErr) {
       console.error(
@@ -98,8 +114,15 @@ export async function markSlideViewed(
       );
       return { error: moduleProgressErr.message };
     }
+
+    if (!moduleProgressData || moduleProgressData.length === 0) {
+      console.error(
+        `[markSlideViewed] user_module_progress update affected 0 rows (likely blocked by RLS) — user=${user.id}, module=${moduleId}, slide=${slideNumber}`
+      );
+      return { error: 'user_module_progress write did not persist (likely blocked by row-level security)' };
+    }
   } else {
-    const { error: moduleProgressErr } = await supabase
+    const { data: moduleProgressData, error: moduleProgressErr } = await supabase
       .from('user_module_progress')
       .insert({
         user_id: user.id,
@@ -114,7 +137,8 @@ export async function markSlideViewed(
         last_accessed_at: new Date().toISOString(),
         quiz_passed: false,
         quiz_attempts_count: 0,
-      });
+      })
+      .select('id');
 
     if (moduleProgressErr) {
       console.error(
@@ -122,6 +146,13 @@ export async function markSlideViewed(
         moduleProgressErr
       );
       return { error: moduleProgressErr.message };
+    }
+
+    if (!moduleProgressData || moduleProgressData.length === 0) {
+      console.error(
+        `[markSlideViewed] user_module_progress insert affected 0 rows (likely blocked by RLS) — user=${user.id}, module=${moduleId}, slide=${slideNumber}`
+      );
+      return { error: 'user_module_progress write did not persist (likely blocked by row-level security)' };
     }
   }
 
@@ -133,31 +164,41 @@ export async function markSlideViewed(
     .single();
 
   if (enrollment?.status === 'enrolled') {
-    const { error: enrollmentErr } = await supabase
+    const { data: enrollmentData, error: enrollmentErr } = await supabase
       .from('course_enrollments')
       .update({
         status: 'in_progress',
         started_at: new Date().toISOString(),
         last_accessed_at: new Date().toISOString(),
       })
-      .eq('id', enrollmentId);
+      .eq('id', enrollmentId)
+      .select('id');
 
     if (enrollmentErr) {
       console.error(
         `[markSlideViewed] failed to update course_enrollments (user=${user.id}, enrollment=${enrollmentId}):`,
         enrollmentErr
       );
+    } else if (!enrollmentData || enrollmentData.length === 0) {
+      console.error(
+        `[markSlideViewed] course_enrollments update affected 0 rows (likely blocked by RLS) — user=${user.id}, enrollment=${enrollmentId}`
+      );
     }
   } else {
-    const { error: enrollmentErr } = await supabase
+    const { data: enrollmentData, error: enrollmentErr } = await supabase
       .from('course_enrollments')
       .update({ last_accessed_at: new Date().toISOString() })
-      .eq('id', enrollmentId);
+      .eq('id', enrollmentId)
+      .select('id');
 
     if (enrollmentErr) {
       console.error(
         `[markSlideViewed] failed to update course_enrollments.last_accessed_at (user=${user.id}, enrollment=${enrollmentId}):`,
         enrollmentErr
+      );
+    } else if (!enrollmentData || enrollmentData.length === 0) {
+      console.error(
+        `[markSlideViewed] course_enrollments.last_accessed_at update affected 0 rows (likely blocked by RLS) — user=${user.id}, enrollment=${enrollmentId}`
       );
     }
   }
