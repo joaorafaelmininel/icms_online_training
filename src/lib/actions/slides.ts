@@ -21,6 +21,14 @@ export async function markSlideViewed(
 
   if (!user) return { error: 'Not authenticated' };
 
+  // Unconditional entry log — the only way to confirm from server-side
+  // logs whether this action is even being invoked for a given slide,
+  // since a client-side error before/inside the fire-and-forget
+  // startTransition call would otherwise leave zero trace anywhere.
+  console.log(
+    `[markSlideViewed] called user=${user.id} module=${moduleId} slide=${slideNumber} total=${totalSlides} enrollment=${enrollmentId}`
+  );
+
   // 1. Upsert slide as completed
   const { error: slideErr } = await supabase
     .from('user_slide_progress')
@@ -158,6 +166,10 @@ export async function markSlideViewed(
   // student who has read every slide but not yet taken the quiz should
   // still see accurate (if not-yet-100%) progress on the dashboard.
   await recalculateEnrollmentProgress(supabase, user.id, courseId);
+
+  console.log(
+    `[markSlideViewed] done user=${user.id} module=${moduleId} slide=${slideNumber} -> current_slide saved as ${slideNumber}`
+  );
 
   return { viewedNumbers, allViewed };
 }
