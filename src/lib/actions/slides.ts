@@ -72,7 +72,7 @@ export async function markSlideViewed(
     .maybeSingle();
 
   if (existing) {
-    await supabase
+    const { error: moduleProgressErr } = await supabase
       .from('user_module_progress')
       .update({
         current_slide: slideNumber,
@@ -82,21 +82,39 @@ export async function markSlideViewed(
         last_accessed_at: new Date().toISOString(),
       })
       .eq('id', existing.id);
+
+    if (moduleProgressErr) {
+      console.error(
+        `[markSlideViewed] failed to update user_module_progress (user=${user.id}, module=${moduleId}, slide=${slideNumber}):`,
+        moduleProgressErr
+      );
+      return { error: moduleProgressErr.message };
+    }
   } else {
-    await supabase.from('user_module_progress').insert({
-      user_id: user.id,
-      course_id: courseId,
-      module_id: moduleId,
-      enrollment_id: enrollmentId,
-      current_slide: slideNumber,
-      completed_slides: viewedNumbers,
-      total_slides: totalSlides,
-      is_completed: allViewed,
-      completed_at: allViewed ? new Date().toISOString() : null,
-      last_accessed_at: new Date().toISOString(),
-      quiz_passed: false,
-      quiz_attempts_count: 0,
-    });
+    const { error: moduleProgressErr } = await supabase
+      .from('user_module_progress')
+      .insert({
+        user_id: user.id,
+        course_id: courseId,
+        module_id: moduleId,
+        enrollment_id: enrollmentId,
+        current_slide: slideNumber,
+        completed_slides: viewedNumbers,
+        total_slides: totalSlides,
+        is_completed: allViewed,
+        completed_at: allViewed ? new Date().toISOString() : null,
+        last_accessed_at: new Date().toISOString(),
+        quiz_passed: false,
+        quiz_attempts_count: 0,
+      });
+
+    if (moduleProgressErr) {
+      console.error(
+        `[markSlideViewed] failed to insert user_module_progress (user=${user.id}, module=${moduleId}, slide=${slideNumber}):`,
+        moduleProgressErr
+      );
+      return { error: moduleProgressErr.message };
+    }
   }
 
   // 4. Update enrollment status to in_progress if still enrolled
@@ -107,7 +125,7 @@ export async function markSlideViewed(
     .single();
 
   if (enrollment?.status === 'enrolled') {
-    await supabase
+    const { error: enrollmentErr } = await supabase
       .from('course_enrollments')
       .update({
         status: 'in_progress',
@@ -115,11 +133,25 @@ export async function markSlideViewed(
         last_accessed_at: new Date().toISOString(),
       })
       .eq('id', enrollmentId);
+
+    if (enrollmentErr) {
+      console.error(
+        `[markSlideViewed] failed to update course_enrollments (user=${user.id}, enrollment=${enrollmentId}):`,
+        enrollmentErr
+      );
+    }
   } else {
-    await supabase
+    const { error: enrollmentErr } = await supabase
       .from('course_enrollments')
       .update({ last_accessed_at: new Date().toISOString() })
       .eq('id', enrollmentId);
+
+    if (enrollmentErr) {
+      console.error(
+        `[markSlideViewed] failed to update course_enrollments.last_accessed_at (user=${user.id}, enrollment=${enrollmentId}):`,
+        enrollmentErr
+      );
+    }
   }
 
   // Keep the enrollment-level percentage/current-module in sync — a
