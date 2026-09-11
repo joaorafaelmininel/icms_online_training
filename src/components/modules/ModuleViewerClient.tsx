@@ -172,30 +172,39 @@ export default function ModuleViewerClient({
   const isLastModule = !nextMod;
   const quizPassed = moduleProgress?.quiz_passed || false;
 
-  // ─── Auto-mark current slide as viewed ──────────────────────────────────────
+  // ─── Auto-mark current slide as viewed + save resume position ──────────────
+  // markSlideViewed is the only place current_slide (where the module
+  // resumes next time) gets written. It used to run only when the current
+  // slide wasn't already in `completed` — which is exactly the "mark as
+  // viewed" case, but it also doubles as the resume-position save. Once
+  // every slide in a module has been viewed once, that condition is false
+  // for every slide, forever — so current_slide stops updating the moment
+  // a student finishes the module, and freezes at whichever slide happened
+  // to be the last "newly viewed" one (reported: always reopening on slide
+  // 22 in a module the student had already fully completed). Call it on
+  // every slide change regardless, so resume position always stays live;
+  // it's a cheap upsert either way.
   useEffect(() => {
-    if (!completed.has(current)) {
-      setCompleted((prev) => new Set(prev).add(current));
+    setCompleted((prev) => (prev.has(current) ? prev : new Set(prev).add(current)));
 
-      startTransition(async () => {
-        // startTransition doesn't await this callback or catch anything it
-        // throws — an exception here becomes an unhandled promise
-        // rejection that never reaches Vercel's server logs and never
-        // reaches the student either, which is exactly how a save could
-        // fail completely silently. Catch + surface it as a visible
-        // banner instead, both for a returned {error} and a hard throw.
-        try {
-          const result = await markSlideViewed(mod.id, course.id, enrollmentId, current, total);
-          if (result?.error) {
-            setSaveError(result.error);
-          } else {
-            setSaveError(null);
-          }
-        } catch (err) {
-          setSaveError(err instanceof Error ? err.message : 'Failed to save progress');
+    startTransition(async () => {
+      // startTransition doesn't await this callback or catch anything it
+      // throws — an exception here becomes an unhandled promise rejection
+      // that never reaches Vercel's server logs and never reaches the
+      // student either, which is exactly how a save could fail completely
+      // silently. Catch + surface it as a visible banner instead, both for
+      // a returned {error} and a hard throw.
+      try {
+        const result = await markSlideViewed(mod.id, course.id, enrollmentId, current, total);
+        if (result?.error) {
+          setSaveError(result.error);
+        } else {
+          setSaveError(null);
         }
-      });
-    }
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'Failed to save progress');
+      }
+    });
     // Scroll to top of slide area
     slideAreaRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
