@@ -170,13 +170,45 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // Needed after the delete to recount and correct course_modules.total_slides
+  // — nothing in the app actually reads that stored counter today (every
+  // page that shows a slide count derives it live from module_slides
+  // instead), but it's still stale, stored data that's worth keeping
+  // correct rather than leaving it to silently drift further.
+  const slideForDelete = await supabase
+    .from('module_slides')
+    .select('module_id')
+    .eq('id', params.slideId)
+    .single()
+
   const deleteResult = await supabase
     .from('module_slides')
     .delete()
     .eq('id', params.slideId)
+    .select('id')
 
   if (deleteResult.error) {
     return NextResponse.json({ error: deleteResult.error.message }, { status: 500 })
+  }
+
+  if (!deleteResult.data || deleteResult.data.length === 0) {
+    return NextResponse.json(
+      { error: 'Delete did not affect any rows (likely blocked by a row-level security policy on module_slides)' },
+      { status: 500 }
+    )
+  }
+
+  const moduleId = (slideForDelete.data as { module_id: string } | null)?.module_id
+  if (moduleId) {
+    const { count } = await supabase
+      .from('module_slides')
+      .select('id', { count: 'exact', head: true })
+      .eq('module_id', moduleId)
+
+    await supabase
+      .from('course_modules')
+      .update({ total_slides: count ?? 0 } as never)
+      .eq('id', moduleId)
   }
 
   return NextResponse.json({ success: true })

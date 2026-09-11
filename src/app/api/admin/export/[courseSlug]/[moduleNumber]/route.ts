@@ -81,11 +81,23 @@ export async function GET(
     return NextResponse.json({ error: slidesResult.error.message }, { status: 500 })
   }
 
+  const liveSlideCount = slidesResult.data?.length ?? 0
+
+  // Self-heal course_modules.total_slides while we're here — it's a stored
+  // counter that drifts whenever a slide is added/removed through the admin
+  // panel (nothing in the app reads it directly, everything else derives
+  // the count live from module_slides, but it's still worth keeping correct
+  // rather than leaving stale data sitting in the table).
+  await supabase
+    .from('course_modules')
+    .update({ total_slides: liveSlideCount } as never)
+    .eq('id', mod.id)
+
   return NextResponse.json({
     course: { slug: course.slug, title: course.title },
     module: { module_number: mod.module_number, title: mod.title },
     exported_at: new Date().toISOString(),
-    slide_count: slidesResult.data?.length ?? 0,
+    slide_count: liveSlideCount,
     slides: slidesResult.data,
   })
 }
