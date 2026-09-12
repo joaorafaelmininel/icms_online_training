@@ -195,6 +195,8 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
   const [modTitleEs,      setModTitleEs     ] = useState('')
   const [savingModTitle,  setSavingModTitle ] = useState(false)
   const [modTitleError,   setModTitleError  ] = useState<string | null>(null)
+  const [reorderingId,    setReorderingId   ] = useState<string | null>(null)
+  const [reorderError,    setReorderError   ] = useState<string | null>(null)
   const [importOpen,      setImportOpen     ] = useState(false)
   const [importText,      setImportText     ] = useState('')
   const [importReplace,   setImportReplace  ] = useState(false)
@@ -285,6 +287,52 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
         module_slides: m.module_slides.map(s => s.id === slideId ? { ...s, title } : s),
       })),
     })
+  }
+
+  // Moves a slide up/down by swapping its slide_number with its current
+  // neighbor in the (already position-sorted) list — never by arithmetic on
+  // slide_number itself, since a module can have gaps in that sequence
+  // (e.g. after a slide was deleted) where neighboring numbers aren't
+  // actually adjacent.
+  async function handleReorderSlide(slide: SlideData, direction: 'up' | 'down') {
+    if (!selectedModule) return
+    const list = selectedModule.module_slides
+    const index = list.findIndex(s => s.id === slide.id)
+    const swapIndex = direction === 'up' ? index - 1 : index + 1
+    if (index === -1 || swapIndex < 0 || swapIndex >= list.length) return
+    const neighbor = list[swapIndex]
+
+    setReorderingId(slide.id); setReorderError(null)
+    try {
+      const res = await fetch(`/api/admin/slides/${slide.id}/reorder`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ swapWithSlideId: neighbor.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to reorder slide')
+
+      const updated: { id: string; slide_number: number }[] = data.slides
+      const applyReorder = (slides: SlideData[]) =>
+        slides
+          .map(s => {
+            const match = updated.find(u => u.id === s.id)
+            return match ? { ...s, slide_number: match.slide_number } : s
+          })
+          .sort((a, b) => a.slide_number - b.slide_number)
+
+      setSelectedModule(prev => prev ? { ...prev, module_slides: applyReorder(prev.module_slides) } : prev)
+      setSelectedCourse(prev => !prev ? prev : {
+        ...prev,
+        course_modules: prev.course_modules.map(m => m.id === selectedModule.id
+          ? { ...m, module_slides: applyReorder(m.module_slides) }
+          : m
+        ),
+      })
+    } catch (err: any) {
+      setReorderError(err.message)
+    } finally {
+      setReorderingId(null)
+    }
   }
 
   function onSlideDeleted(slideId: string) {
@@ -640,35 +688,65 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
                 <p className="mt-2 text-xs text-slate-300">Select a module</p>
               </div>
             ) : (
-              selectedModule.module_slides.map(slide => {
-                const hasText  = slide.content?.some(b => ['heading','paragraph','list','callout'].includes(b.type))
-                const hasImage = slide.content?.some(b => b.type === 'image')
-                const hasVideo = slide.content?.some(b => b.type === 'video')
-                const hasAudio = slide.content?.some(b => b.type === 'audio')
-                const isActive = selectedSlide?.id === slide.id
-                return (
-                  <button key={slide.id} onClick={() => setSelectedSlide(slide)}
-                    className={`group w-full px-4 py-2.5 text-left transition ${
-                      isActive ? 'bg-blue-50 border-r-2 border-[#0B4A7C]' : 'hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className={`text-[10px] font-bold tabular-nums ${isActive ? 'text-[#0B4A7C]' : 'text-slate-300'}`}>
-                        {String(slide.slide_number).padStart(2, '0')}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        {hasText  && <span className={isActive ? 'text-[#0B4A7C]/50' : 'text-slate-300'}>{Icons.text}</span>}
-                        {hasImage && <span className={isActive ? 'text-[#0B4A7C]/50' : 'text-slate-300'}>{Icons.image}</span>}
-                        {hasVideo && <span className={isActive ? 'text-[#0B4A7C]/50' : 'text-slate-300'}>{Icons.video}</span>}
-                        {hasAudio && <span className={isActive ? 'text-[#0B4A7C]/50' : 'text-slate-300'}>{Icons.audio}</span>}
+              <>
+                {reorderError && (
+                  <p className="mx-4 mt-1.5 mb-1 text-[10px] text-red-600">{reorderError}</p>
+                )}
+                {selectedModule.module_slides.map((slide, i) => {
+                  const hasText  = slide.content?.some(b => ['heading','paragraph','list','callout'].includes(b.type))
+                  const hasImage = slide.content?.some(b => b.type === 'image')
+                  const hasVideo = slide.content?.some(b => b.type === 'video')
+                  const hasAudio = slide.content?.some(b => b.type === 'audio')
+                  const isActive = selectedSlide?.id === slide.id
+                  const isFirst = i === 0
+                  const isLast = i === selectedModule.module_slides.length - 1
+                  const isReordering = reorderingId === slide.id
+                  return (
+                    <div key={slide.id}
+                      className={`group flex w-full items-stretch transition ${
+                        isActive ? 'bg-blue-50 border-r-2 border-[#0B4A7C]' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <button onClick={() => setSelectedSlide(slide)}
+                        className="min-w-0 flex-1 px-4 py-2.5 text-left"
+                      >
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className={`text-[10px] font-bold tabular-nums ${isActive ? 'text-[#0B4A7C]' : 'text-slate-300'}`}>
+                            {String(slide.slide_number).padStart(2, '0')}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {hasText  && <span className={isActive ? 'text-[#0B4A7C]/50' : 'text-slate-300'}>{Icons.text}</span>}
+                            {hasImage && <span className={isActive ? 'text-[#0B4A7C]/50' : 'text-slate-300'}>{Icons.image}</span>}
+                            {hasVideo && <span className={isActive ? 'text-[#0B4A7C]/50' : 'text-slate-300'}>{Icons.video}</span>}
+                            {hasAudio && <span className={isActive ? 'text-[#0B4A7C]/50' : 'text-slate-300'}>{Icons.audio}</span>}
+                          </div>
+                        </div>
+                        <p className={`text-xs leading-snug line-clamp-2 ${isActive ? 'font-medium text-[#0B4A7C]' : 'text-slate-600'}`}>
+                          {loc(slide.title)}
+                        </p>
+                      </button>
+                      <div className="flex shrink-0 flex-col justify-center gap-0.5 pr-1.5">
+                        <button
+                          onClick={() => handleReorderSlide(slide, 'up')}
+                          disabled={isFirst || isReordering}
+                          title="Move slide up"
+                          className="rounded p-0.5 text-slate-300 transition hover:bg-slate-200 hover:text-slate-600 disabled:pointer-events-none disabled:opacity-20"
+                        >
+                          {Icons.chevronUp}
+                        </button>
+                        <button
+                          onClick={() => handleReorderSlide(slide, 'down')}
+                          disabled={isLast || isReordering}
+                          title="Move slide down"
+                          className="rounded p-0.5 text-slate-300 transition hover:bg-slate-200 hover:text-slate-600 disabled:pointer-events-none disabled:opacity-20"
+                        >
+                          {Icons.chevronDown}
+                        </button>
                       </div>
                     </div>
-                    <p className={`text-xs leading-snug line-clamp-2 ${isActive ? 'font-medium text-[#0B4A7C]' : 'text-slate-600'}`}>
-                      {loc(slide.title)}
-                    </p>
-                  </button>
-                )
-              })
+                  )
+                })}
+              </>
             )}
           </div>
         </aside>
