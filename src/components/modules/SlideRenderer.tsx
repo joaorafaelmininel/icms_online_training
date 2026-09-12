@@ -1,7 +1,7 @@
 // src/components/modules/SlideRenderer.tsx
 'use client';
 
-import { useState, useRef, type ReactNode } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import type { ContentBlock, SlideLayout } from '@/lib/types/slides';
 import { useContainedImageMarkers } from '@/hooks/useContainedImageMarkers';
 import { useImageAspectRatio } from '@/hooks/useImageAspectRatio';
@@ -315,11 +315,36 @@ function VideoMedia({
   caption: string;
 }) {
   const [error, setError] = useState(false);
+  // Some source videos are portrait phone-screen recordings, not the 16:9
+  // the player used to assume — forcing those into a fixed aspect-video box
+  // pillarboxed them down to a thin strip. Read the file's real dimensions
+  // and size the box to match, capped by height so a portrait video still
+  // reads as a reasonably sized clip rather than the full slide width.
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  function readAspectRatio() {
+    const el = videoRef.current;
+    if (el && el.videoWidth && el.videoHeight) {
+      setAspectRatio(el.videoWidth / el.videoHeight);
+    }
+  }
+
+  // A cached video can already have its metadata (readyState >=
+  // HAVE_METADATA) before this component's onLoadedMetadata handler is
+  // attached, the same gotcha cached <img> loads have with onLoad.
+  useEffect(() => {
+    if (videoRef.current && videoRef.current.readyState >= 1) readAspectRatio();
+  }, [url]);
+
+  const ratio = aspectRatio || 16 / 9;
+
   return (
-    <figure className="overflow-hidden rounded-xl border border-gray-100 bg-black shadow-sm">
-      <div className="relative aspect-video w-full">
+    <figure
+      className="mx-auto overflow-hidden rounded-xl border border-gray-100 bg-black shadow-sm"
+      style={{ maxWidth: `min(100%, calc(520px * ${ratio}))` }}
+    >
+      <div className="relative w-full" style={{ aspectRatio: String(ratio) }}>
         {error ? (
           <div className="flex h-full flex-col items-center justify-center bg-gray-900 text-gray-500">
             <svg className="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -338,7 +363,8 @@ function VideoMedia({
             controls
             preload="metadata"
             poster={poster || undefined}
-            className="h-full w-full"
+            className="h-full w-full object-contain"
+            onLoadedMetadata={readAspectRatio}
             onError={() => setError(true)}
           >
             <source src={url} type="video/mp4" />
