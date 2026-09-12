@@ -133,6 +133,13 @@ export async function PATCH(
     )
   }
 
+  // A null/malformed block in this array crashes the admin panel and the
+  // student view alike (both do `block.type === ...` checks with no null
+  // guard) — strip anything that isn't a real block before it's saved.
+  blocks = blocks.filter(
+    (b): b is ContentBlock => !!b && typeof b === 'object' && typeof (b as { type?: unknown }).type === 'string'
+  )
+
   const updatePayload = {
     content: blocks,
     updated_at: new Date().toISOString(),

@@ -67,6 +67,14 @@ export async function POST(req: NextRequest) {
     if (!Array.isArray(slide.content)) {
       return NextResponse.json({ error: `slides[${i}].content must be an array` }, { status: 400 })
     }
+    for (const [j, block] of slide.content.entries()) {
+      if (!block || typeof block !== 'object' || typeof (block as { type?: unknown }).type !== 'string') {
+        return NextResponse.json(
+          { error: `slides[${i}].content[${j}] is null/malformed (missing a valid "type") — this would crash the admin panel and the student view for this module` },
+          { status: 400 }
+        )
+      }
+    }
   }
 
   const moduleResult = await supabase

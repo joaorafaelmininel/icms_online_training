@@ -58,8 +58,15 @@ function loc(field: { en: string; es: string } | string | null | undefined, lang
   return field[lang] || field['en'] || '';
 }
 
-export default function SlideRenderer({ content, layout, language }: Props) {
-  if (!Array.isArray(content) || content.length === 0) {
+export default function SlideRenderer({ content: rawContent, layout, language }: Props) {
+  // Defensive filter for corrupted content arrays (e.g. a null/malformed
+  // entry saved by a bad import) — without this, a single bad block throws
+  // and takes down the whole slide for every student.
+  const content = Array.isArray(rawContent)
+    ? rawContent.filter((b): b is ContentBlock => !!b && typeof b === 'object' && typeof (b as { type?: unknown }).type === 'string')
+    : [];
+
+  if (content.length === 0) {
     return (
       <div className="flex h-40 items-center justify-center text-sm text-gray-300">
         No content

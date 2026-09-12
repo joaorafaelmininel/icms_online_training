@@ -38,6 +38,14 @@ interface SlideData {
   thumbnail_url: string | null
 }
 
+// Defensive filter for corrupted content arrays (e.g. a null/malformed entry
+// saved by a bad import) — without this, any `.some(b => b.type === ...)` or
+// similar check throws and takes down the whole admin panel for that module.
+function sanitizeContent(content: ContentBlock[] | null | undefined): ContentBlock[] {
+  if (!Array.isArray(content)) return []
+  return content.filter((b): b is ContentBlock => !!b && typeof b === 'object' && typeof (b as { type?: unknown }).type === 'string')
+}
+
 interface ModuleData {
   id: string
   module_number: number
@@ -693,10 +701,11 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
                   <p className="mx-4 mt-1.5 mb-1 text-[10px] text-red-600">{reorderError}</p>
                 )}
                 {selectedModule.module_slides.map((slide, i) => {
-                  const hasText  = slide.content?.some(b => ['heading','paragraph','list','callout'].includes(b.type))
-                  const hasImage = slide.content?.some(b => b.type === 'image')
-                  const hasVideo = slide.content?.some(b => b.type === 'video')
-                  const hasAudio = slide.content?.some(b => b.type === 'audio')
+                  const safeContent = sanitizeContent(slide.content)
+                  const hasText  = safeContent.some(b => ['heading','paragraph','list','callout'].includes(b.type))
+                  const hasImage = safeContent.some(b => b.type === 'image')
+                  const hasVideo = safeContent.some(b => b.type === 'video')
+                  const hasAudio = safeContent.some(b => b.type === 'audio')
                   const isActive = selectedSlide?.id === slide.id
                   const isFirst = i === 0
                   const isLast = i === selectedModule.module_slides.length - 1
@@ -954,7 +963,7 @@ function SlideEditor({
   onDeleted: (id: string) => void
   onTitleUpdated: (id: string, title: LocalizedField) => void
 }) {
-  const [content,       setContent      ] = useState<ContentBlock[]>(slide.content || [])
+  const [content,       setContent      ] = useState<ContentBlock[]>(sanitizeContent(slide.content))
   const [uploadMsg,     setUploadMsg    ] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [deleting,      setDeleting     ] = useState(false)
   const [deleteError,   setDeleteError  ] = useState<string | null>(null)
