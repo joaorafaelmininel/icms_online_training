@@ -190,6 +190,11 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
   const [activeTab,       setActiveTab      ] = useState<EditorTab>('content')
   const [creatingSlide,   setCreatingSlide  ] = useState(false)
   const [createError,     setCreateError    ] = useState<string | null>(null)
+  const [editingModTitle, setEditingModTitle] = useState(false)
+  const [modTitleEn,      setModTitleEn     ] = useState('')
+  const [modTitleEs,      setModTitleEs     ] = useState('')
+  const [savingModTitle,  setSavingModTitle ] = useState(false)
+  const [modTitleError,   setModTitleError  ] = useState<string | null>(null)
   const [importOpen,      setImportOpen     ] = useState(false)
   const [importText,      setImportText     ] = useState('')
   const [importReplace,   setImportReplace  ] = useState(false)
@@ -211,6 +216,40 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
   }
   function pickModule(mod: ModuleData) {
     setSelectedModule(mod); setSelectedSlide(null); setCreateError(null)
+    setEditingModTitle(false); setModTitleError(null)
+  }
+
+  function openModuleTitleEditor() {
+    if (!selectedModule) return
+    setModTitleEn(selectedModule.title?.en || '')
+    setModTitleEs(selectedModule.title?.es || '')
+    setModTitleError(null)
+    setEditingModTitle(true)
+  }
+
+  async function handleSaveModuleTitle() {
+    if (!selectedModule) return
+    setSavingModTitle(true); setModTitleError(null)
+    try {
+      const res = await fetch(`/api/admin/modules/${selectedModule.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: { en: modTitleEn, es: modTitleEs } }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to save module title')
+
+      const newTitle = data.title as LocalizedField
+      setSelectedModule(prev => prev ? { ...prev, title: newTitle } : prev)
+      setSelectedCourse(prev => !prev ? prev : {
+        ...prev,
+        course_modules: prev.course_modules.map(m => m.id === selectedModule.id ? { ...m, title: newTitle } : m),
+      })
+      setEditingModTitle(false)
+    } catch (err: any) {
+      setModTitleError(err.message)
+    } finally {
+      setSavingModTitle(false)
+    }
   }
   function onSlideContentUpdated(slideId: string, newContent: ContentBlock[]) {
     setSelectedSlide(prev => prev?.id === slideId ? { ...prev, content: newContent } : prev)
@@ -505,6 +544,53 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
               {selectedModule ? `M${selectedModule.module_number} — Slides` : 'Slides'}
             </p>
+            {selectedModule && !editingModTitle && (
+              <div className="mt-1 flex items-start gap-1.5">
+                <p className="flex-1 text-[11px] leading-snug text-slate-600">{loc(selectedModule.title)}</p>
+                <button
+                  onClick={openModuleTitleEditor}
+                  title="Rename module"
+                  className="shrink-0 rounded p-0.5 text-slate-300 transition hover:bg-slate-100 hover:text-slate-500"
+                >
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+              </div>
+            )}
+            {selectedModule && editingModTitle && (
+              <div className="mt-1.5 space-y-1.5">
+                <input
+                  value={modTitleEn}
+                  onChange={e => setModTitleEn(e.target.value)}
+                  placeholder="Module title — English"
+                  className="w-full rounded border border-slate-200 px-2 py-1 text-[11px] outline-none focus:border-[#0B4A7C]"
+                />
+                <input
+                  value={modTitleEs}
+                  onChange={e => setModTitleEs(e.target.value)}
+                  placeholder="Título del módulo — Español"
+                  className="w-full rounded border border-slate-200 px-2 py-1 text-[11px] outline-none focus:border-[#0B4A7C]"
+                />
+                {modTitleError && <p className="text-[10px] text-red-600">{modTitleError}</p>}
+                <div className="flex justify-end gap-1.5">
+                  <button
+                    onClick={() => { setEditingModTitle(false); setModTitleError(null) }}
+                    className="rounded px-2 py-1 text-[10px] font-semibold text-slate-500 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveModuleTitle}
+                    disabled={savingModTitle}
+                    className="rounded px-2 py-1 text-[10px] font-bold text-white disabled:opacity-50"
+                    style={{ background: '#0B4A7C' }}
+                  >
+                    {savingModTitle ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            )}
             {selectedModule && (
               <div className="mt-2 flex gap-1.5">
                 <button
