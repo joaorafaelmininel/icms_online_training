@@ -84,12 +84,16 @@ export async function PATCH(
   }
 
   // Three-step swap through a temporary sentinel value, since slide_number
-  // carries a unique constraint per module — writing B's number directly
-  // onto A while A still holds it would collide. -1 is safe as a scratch
-  // value: slide_number is always assigned starting at 1.
+  // carries both a unique constraint per module and a "must be positive"
+  // check constraint — writing B's number directly onto A while A still
+  // holds it would collide, and a negative scratch value (tried first)
+  // gets rejected by the check constraint. Offsetting well past any
+  // realistic slide count keeps this positive and collision-free.
+  const tempSlideNumber = 1_000_000 + slideA.slide_number
+
   const step1 = await supabase
     .from('module_slides')
-    .update({ slide_number: -1 } as never)
+    .update({ slide_number: tempSlideNumber } as never)
     .eq('id', slideA.id)
     .select('id')
 
