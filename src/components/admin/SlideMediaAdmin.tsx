@@ -192,6 +192,7 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
   const [createError,     setCreateError    ] = useState<string | null>(null)
   const [importOpen,      setImportOpen     ] = useState(false)
   const [importText,      setImportText     ] = useState('')
+  const [importReplace,   setImportReplace  ] = useState(false)
   const [importing,       setImporting      ] = useState(false)
   const [importError,     setImportError    ] = useState<string | null>(null)
   const [quizImportOpen,  setQuizImportOpen ] = useState(false)
@@ -309,21 +310,30 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
     try {
       const res  = await fetch('/api/admin/slides/bulk-import', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ moduleId: selectedModule.id, slides }),
+        body: JSON.stringify({
+          moduleId: selectedModule.id,
+          slides,
+          mode: importReplace ? 'replace' : 'append',
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to import slides')
 
       const newSlides = data.slides as SlideData[]
-      setSelectedModule(prev => prev ? { ...prev, module_slides: [...prev.module_slides, ...newSlides] } : prev)
+      // 'replace' means the server already deleted every prior slide in this
+      // module before inserting these — mirror that here instead of
+      // appending, or the sidebar would still show the slides that were
+      // just wiped out server-side.
+      const nextSlidesForModule = importReplace ? newSlides : [...selectedModule.module_slides, ...newSlides]
+      setSelectedModule(prev => prev ? { ...prev, module_slides: nextSlidesForModule } : prev)
       setSelectedCourse(prev => !prev ? prev : {
         ...prev,
         course_modules: prev.course_modules.map(m => m.id === selectedModule.id
-          ? { ...m, module_slides: [...m.module_slides, ...newSlides] }
+          ? { ...m, module_slides: nextSlidesForModule }
           : m
         ),
       })
-      setImportOpen(false); setImportText('')
+      setImportOpen(false); setImportText(''); setImportReplace(false)
       if (newSlides[0]) { setSelectedSlide(newSlides[0]); setActiveTab('content') }
     } catch (err: any) {
       setImportError(err.message)
@@ -610,7 +620,7 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
               <div>
                 <h3 className="text-sm font-semibold text-slate-800">Import Slides</h3>
                 <p className="text-xs text-slate-400">
-                  Paste a JSON array of slides — each appended to the end of {selectedModule ? loc(selectedModule.title) : 'this module'}.
+                  Paste a JSON array of slides for {selectedModule ? loc(selectedModule.title) : 'this module'}.
                 </p>
               </div>
               <button onClick={() => { setImportOpen(false); setImportError(null) }}
@@ -628,6 +638,17 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
                 placeholder={'[\n  {\n    "title": { "en": "...", "es": "..." },\n    "content": [\n      { "type": "heading", "level": 1, "text": { "en": "...", "es": "..." } },\n      { "type": "paragraph", "text": { "en": "...", "es": "..." } }\n    ]\n  }\n]'}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs leading-relaxed text-slate-700 outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
               />
+              <label className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <input
+                  type="checkbox"
+                  checked={importReplace}
+                  onChange={e => setImportReplace(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  <strong>Replace all existing slides</strong> in this module instead of appending — permanently deletes every slide currently in {selectedModule ? loc(selectedModule.title) : 'this module'} before loading the pasted content. Cannot be undone.
+                </span>
+              </label>
               {importError && (
                 <p className="mt-2 text-xs text-red-600">{importError}</p>
               )}

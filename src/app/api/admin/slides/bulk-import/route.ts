@@ -49,7 +49,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = (await req.json()) as { moduleId?: string; slides?: ImportSlide[] }
+  const body = (await req.json()) as {
+    moduleId?: string
+    slides?: ImportSlide[]
+    mode?: 'append' | 'replace'
+  }
 
   if (!body.moduleId) {
     return NextResponse.json({ error: 'Missing moduleId' }, { status: 400 })
@@ -77,15 +81,35 @@ export async function POST(req: NextRequest) {
 
   const mod = moduleResult.data as { id: string; course_id: string }
 
-  const lastSlideResult = await supabase
-    .from('module_slides')
-    .select('slide_number')
-    .eq('module_id', mod.id)
-    .order('slide_number', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  // 'replace' clears every existing slide in the module first, so the
+  // pasted array becomes the module's entire content starting at slide 1 —
+  // used when a module's content needs a wholesale correction rather than
+  // appending more slides after whatever is already there.
+  if (body.mode === 'replace') {
+    const deleteResult = await supabase
+      .from('module_slides')
+      .delete()
+      .eq('module_id', mod.id)
+      .select('id')
 
-  const startNumber = ((lastSlideResult.data as { slide_number: number } | null)?.slide_number ?? 0) + 1
+    if (deleteResult.error) {
+      return NextResponse.json({ error: deleteResult.error.message }, { status: 500 })
+    }
+  }
+
+  let startNumber = 1
+
+  if (body.mode !== 'replace') {
+    const lastSlideResult = await supabase
+      .from('module_slides')
+      .select('slide_number')
+      .eq('module_id', mod.id)
+      .order('slide_number', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    startNumber = ((lastSlideResult.data as { slide_number: number } | null)?.slide_number ?? 0) + 1
+  }
 
   const rows = body.slides.map((slide, i) => {
     const n = startNumber + i
