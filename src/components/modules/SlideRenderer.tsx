@@ -85,9 +85,14 @@ export default function SlideRenderer({ content: rawContent, layout, language }:
   const mediaBlocks = inlineContent.filter(b => ['image','video','audio','hotspot'].includes(b.type));
   const hasMedia    = mediaBlocks.length > 0;
   const hasText     = textBlocks.length > 0;
+  // A heading is the slide's title, not body copy — a title-only slide (no
+  // paragraph/list/callout) has nothing to balance a side-by-side row with,
+  // so its media would float far to the right with the whole left column
+  // empty beneath the title. Stack it under the title instead.
+  const hasBodyText = textBlocks.some(b => b.type !== 'heading');
 
   // Two-column layout: text left, media right
-  const main = hasText && hasMedia ? (
+  const main = hasText && hasMedia && hasBodyText ? (
     <div className="flex gap-8 lg:gap-12 items-start">
       {/* Left: text content */}
       <div className="flex-1 min-w-0 space-y-5">
@@ -98,6 +103,21 @@ export default function SlideRenderer({ content: rawContent, layout, language }:
       {/* Right: media — widened ~2.5cm (95px) beyond the base 45% column,
           which also nudges the text column left via the shared flex row. */}
       <div className="w-[calc(45%+95px)] shrink-0 space-y-4">
+        {mediaBlocks.map((block, i) => (
+          <Block key={i} block={block} lang={language} />
+        ))}
+      </div>
+    </div>
+  ) : hasText && hasMedia ? (
+    // Title-only text + media: stack the media under the title, centered,
+    // rather than beside it in an otherwise-empty row.
+    <div className="space-y-6">
+      <div className="space-y-5">
+        {textBlocks.map((block, i) => (
+          <Block key={i} block={block} lang={language} />
+        ))}
+      </div>
+      <div className="mx-auto w-full max-w-md space-y-4">
         {mediaBlocks.map((block, i) => (
           <Block key={i} block={block} lang={language} />
         ))}
