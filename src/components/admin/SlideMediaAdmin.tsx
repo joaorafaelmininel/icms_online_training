@@ -985,7 +985,7 @@ function SlideEditor({
   const fileImgRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setContent(slide.content || []); setDeleteError(null)
+    setContent(sanitizeContent(slide.content)); setDeleteError(null)
     setTitleEn(slide.title?.en || ''); setTitleEs(slide.title?.es || ''); setTitleError(null)
   }, [slide.id])
 
