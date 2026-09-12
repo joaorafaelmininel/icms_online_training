@@ -1,7 +1,7 @@
 // src/components/modules/SlideRenderer.tsx
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, type ReactNode } from 'react';
 import type { ContentBlock, SlideLayout } from '@/lib/types/slides';
 import { useContainedImageMarkers } from '@/hooks/useContainedImageMarkers';
 import { useImageAspectRatio } from '@/hooks/useImageAspectRatio';
@@ -12,6 +12,43 @@ interface Props {
   content: ContentBlock[];
   layout: string;
   language: Lang;
+}
+
+// Renders `[label](url)` markdown-style links inside otherwise-plain slide
+// text as real, clickable anchors — the only rich-text markup slide content
+// supports. Only http(s)/mailto URLs are linkified; anything else (e.g. a
+// javascript: scheme) is left as plain text, since this text ultimately
+// comes from whatever an admin typed into a slide.
+const LINK_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/g;
+
+function renderRichText(text: string): ReactNode {
+  if (!text || !text.includes('](')) return text;
+
+  const nodes: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+
+  LINK_PATTERN.lastIndex = 0;
+  while ((match = LINK_PATTERN.exec(text)) !== null) {
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
+    const [, label, url] = match;
+    nodes.push(
+      <a
+        key={key++}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[#0B4A7C] underline decoration-[#0B4A7C]/40 underline-offset-2 hover:decoration-[#0B4A7C]"
+      >
+        {label}
+      </a>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+
+  return nodes;
 }
 
 // Localize helper
@@ -202,7 +239,7 @@ function Heading({ text, level }: { text: string; level: number }) {
 function Paragraph({ text }: { text: string }) {
   return (
     <p className="text-base leading-relaxed text-gray-600 sm:text-[17px] sm:leading-relaxed">
-      {text}
+      {renderRichText(text)}
     </p>
   );
 }
@@ -385,7 +422,7 @@ function List({ items, ordered }: { items: string[]; ordered: boolean }) {
           ) : (
             <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#0B4A7C]/30" />
           )}
-          <span className="text-base leading-relaxed text-gray-600 sm:text-[17px]">{item}</span>
+          <span className="text-base leading-relaxed text-gray-600 sm:text-[17px]">{renderRichText(item)}</span>
         </div>
       ))}
     </div>
@@ -478,7 +515,7 @@ function Callout({
           </p>
         )}
         <p className="text-sm leading-relaxed text-gray-600 sm:text-[15px] sm:leading-relaxed">
-          {text}
+          {renderRichText(text)}
         </p>
       </div>
     </div>
