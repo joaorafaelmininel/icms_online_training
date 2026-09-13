@@ -40,6 +40,8 @@ type RawCourse = {
   id: string
   slug: string
   title: string | LocalizedLike | null
+  description: string | LocalizedLike | null
+  learning_outcomes: string | LocalizedLike | null
   course_modules: RawModule[] | null
 }
 
@@ -96,6 +98,8 @@ function normalizeCourse(course: RawCourse): AdminCourse {
     id: course.id,
     slug: course.slug,
     title: normalizeLocalizedField(course.title),
+    description: normalizeLocalizedField(course.description),
+    learning_outcomes: normalizeLocalizedField(course.learning_outcomes),
     course_modules: modules,
   } as AdminCourse
 }
@@ -126,7 +130,7 @@ export default async function AdminSlidesPage() {
   const coursesResult = await supabase
     .from('courses')
     .select(`
-      id, slug, title,
+      id, slug, title, description, learning_outcomes,
       course_modules (
         id, module_number, title, total_slides,
         module_slides (

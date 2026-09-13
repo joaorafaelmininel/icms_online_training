@@ -58,6 +58,8 @@ interface CourseData {
   id: string
   slug: string
   title: LocalizedField
+  description: LocalizedField
+  learning_outcomes: LocalizedField
   course_modules: ModuleData[]
 }
 
@@ -220,9 +222,17 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
   const [examImporting,   setExamImporting  ] = useState(false)
   const [examImportError, setExamImportError] = useState<string | null>(null)
   const [examImportMsg,   setExamImportMsg  ] = useState<string | null>(null)
+  const [editingCourseDetails, setEditingCourseDetails] = useState(false)
+  const [courseDescEn,     setCourseDescEn    ] = useState('')
+  const [courseDescEs,     setCourseDescEs    ] = useState('')
+  const [courseOutcomesEn, setCourseOutcomesEn] = useState('')
+  const [courseOutcomesEs, setCourseOutcomesEs] = useState('')
+  const [savingCourseDetails, setSavingCourseDetails] = useState(false)
+  const [courseDetailsError, setCourseDetailsError  ] = useState<string | null>(null)
 
   function pickCourse(course: CourseData) {
     setSelectedCourse(course); setSelectedModule(null); setSelectedSlide(null)
+    setEditingCourseDetails(false); setCourseDetailsError(null)
   }
   function pickModule(mod: ModuleData) {
     setSelectedModule(mod); setSelectedSlide(null); setCreateError(null)
@@ -261,6 +271,42 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
       setSavingModTitle(false)
     }
   }
+
+  function openCourseDetailsEditor() {
+    if (!selectedCourse) return
+    setCourseDescEn(selectedCourse.description?.en || '')
+    setCourseDescEs(selectedCourse.description?.es || '')
+    setCourseOutcomesEn(selectedCourse.learning_outcomes?.en || '')
+    setCourseOutcomesEs(selectedCourse.learning_outcomes?.es || '')
+    setCourseDetailsError(null)
+    setEditingCourseDetails(true)
+  }
+
+  async function handleSaveCourseDetails() {
+    if (!selectedCourse) return
+    setSavingCourseDetails(true); setCourseDetailsError(null)
+    try {
+      const res = await fetch(`/api/admin/courses/${selectedCourse.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: { en: courseDescEn, es: courseDescEs },
+          learning_outcomes: { en: courseOutcomesEn, es: courseOutcomesEs },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to save course details')
+
+      const newDescription = data.description as LocalizedField
+      const newOutcomes = data.learning_outcomes as LocalizedField
+      setSelectedCourse(prev => prev ? { ...prev, description: newDescription, learning_outcomes: newOutcomes } : prev)
+      setEditingCourseDetails(false)
+    } catch (err: any) {
+      setCourseDetailsError(err.message)
+    } finally {
+      setSavingCourseDetails(false)
+    }
+  }
+
   function onSlideContentUpdated(slideId: string, newContent: ContentBlock[]) {
     setSelectedSlide(prev => prev?.id === slideId ? { ...prev, content: newContent } : prev)
     // The sidebar slide list (and re-picking a slide from it) reads from
@@ -555,6 +601,16 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
 
                 {selectedCourse?.id === course.id && (
                   <div className="border-b border-slate-100 pb-1">
+                    <button
+                      onClick={openCourseDetailsEditor}
+                      title="Edit course description and learning outcomes"
+                      className="mx-4 mt-1.5 flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-500 transition hover:bg-slate-50"
+                    >
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit Course Details
+                    </button>
                     {/* Read from selectedCourse (reactive), not the static `course` prop —
                         this is what handleCreateSlide/onSlideDeleted actually update. */}
                     {selectedCourse.course_modules.map(mod => (
@@ -943,6 +999,86 @@ export default function SlideMediaAdmin({ courses, adminName }: Props) {
                   </svg>
                 )}
                 {examImporting ? 'Importing...' : 'Import'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Course Details modal ── */}
+      {editingCourseDetails && selectedCourse && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-6">
+          <div className="flex w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800">Edit Course Details</h3>
+                <p className="text-xs text-slate-400">
+                  Description and learning outcomes for {loc(selectedCourse.title)}. Learning outcomes: one item per line.
+                </p>
+              </div>
+              <button onClick={() => { setEditingCourseDetails(false); setCourseDetailsError(null) }}
+                className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="max-h-[70vh] space-y-4 overflow-y-auto px-5 py-4">
+              <div>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-600">{Icons.flag_en} Description</label>
+                <textarea
+                  rows={3}
+                  value={courseDescEn}
+                  onChange={e => setCourseDescEn(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs leading-relaxed text-slate-700 outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-600">{Icons.flag_es} Descripción</label>
+                <textarea
+                  rows={3}
+                  value={courseDescEs}
+                  onChange={e => setCourseDescEs(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs leading-relaxed text-slate-700 outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-600">{Icons.flag_en} Learning Outcomes (one per line)</label>
+                <textarea
+                  rows={6}
+                  value={courseOutcomesEn}
+                  onChange={e => setCourseOutcomesEn(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs leading-relaxed text-slate-700 outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-600">{Icons.flag_es} Resultados de Aprendizaje (uno por línea)</label>
+                <textarea
+                  rows={6}
+                  value={courseOutcomesEs}
+                  onChange={e => setCourseOutcomesEs(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs leading-relaxed text-slate-700 outline-none focus:border-[#0B4A7C] focus:ring-1 focus:ring-[#0B4A7C]/20"
+                />
+              </div>
+              {courseDetailsError && (
+                <p className="text-xs text-red-600">{courseDetailsError}</p>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-3">
+              <button onClick={() => { setEditingCourseDetails(false); setCourseDetailsError(null) }}
+                className="rounded-md px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50">
+                Cancel
+              </button>
+              <button onClick={handleSaveCourseDetails} disabled={savingCourseDetails}
+                className="flex items-center gap-1.5 rounded-md px-4 py-1.5 text-xs font-bold text-white transition disabled:opacity-50"
+                style={{ background: '#0B4A7C' }}>
+                {savingCourseDetails && (
+                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+                {savingCourseDetails ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
