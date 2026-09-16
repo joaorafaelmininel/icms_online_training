@@ -91,9 +91,11 @@ export default function SlideRenderer({ content: rawContent, layout, language }:
   // empty beneath the title. Stack it under the title instead.
   const hasBodyText = textBlocks.some(b => b.type !== 'heading');
 
-  // Two-column layout: text left, media right
+  // Two-column layout: text left, media right — stacked (text above media)
+  // below the `lg` breakpoint, since the 45%-width media column otherwise
+  // squeezes body text into roughly half of an already-narrow phone screen.
   const main = hasText && hasMedia && hasBodyText ? (
-    <div className="flex gap-8 lg:gap-12 items-start">
+    <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
       {/* Left: text content */}
       <div className="flex-1 min-w-0 space-y-5">
         {textBlocks.map((block, i) => (
@@ -102,7 +104,7 @@ export default function SlideRenderer({ content: rawContent, layout, language }:
       </div>
       {/* Right: media — widened ~2.5cm (95px) beyond the base 45% column,
           which also nudges the text column left via the shared flex row. */}
-      <div className="w-[calc(45%+95px)] shrink-0 space-y-4">
+      <div className="w-full lg:w-[calc(45%+95px)] shrink-0 space-y-4">
         {mediaBlocks.map((block, i) => (
           <Block key={i} block={block} lang={language} />
         ))}

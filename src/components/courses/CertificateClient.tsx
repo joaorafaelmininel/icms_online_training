@@ -1,9 +1,9 @@
 // src/components/courses/CertificateClient.tsx
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import CertificateSheet from './CertificateSheet'
+import CertificateSheet, { CERT_WIDTH, CERT_HEIGHT } from './CertificateSheet'
 
 type Lang = 'en' | 'es'
 interface LocalizedText { en: string; es: string }
@@ -35,6 +35,30 @@ export default function CertificateClient({
   const isEs = language === 'es'
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // The certificate preview below reuses CertificateSheet at its native,
+  // fixed pixel size (same component the server renders to PDF via
+  // Puppeteer, which must stay untouched). On a phone-width screen that
+  // fixed size would otherwise force horizontal scrolling, so scale the
+  // preview down to fit the viewport — this only affects the on-screen
+  // preview's transform, never the component's actual markup or the PDF.
+  const certWrapperRef = useRef<HTMLDivElement>(null)
+  const [certScale, setCertScale] = useState(1)
+
+  useEffect(() => {
+    const el = certWrapperRef.current
+    if (!el) return
+
+    const updateScale = () => {
+      const available = el.clientWidth
+      setCertScale(available > 0 ? Math.min(1, available / CERT_WIDTH) : 1)
+    }
+
+    updateScale()
+    const observer = new ResizeObserver(updateScale)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   const formattedDate = new Date(completionDate).toLocaleDateString(
     isEs ? 'es-ES' : 'en-US',
@@ -149,13 +173,21 @@ export default function CertificateClient({
 
       {/* Certificate preview — the exact same component (CertificateSheet) is
           rendered server-side by Puppeteer to produce the downloaded PDF. */}
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '0 24px 64px', overflowX: 'auto' }}>
-        <div style={{ boxShadow: '0 25px 60px -10px rgba(0,0,0,0.35)', flexShrink: 0 }}>
-          <CertificateSheet
-            fullName={fullName} courseText={courseText} formattedDate={formattedDate}
-            certNo={T.certNo} signatureUrl={signatureUrl} line1={T.line1}
-            recLine={T.recLine} conf={T.conf}
-          />
+      <div ref={certWrapperRef} style={{ padding: '0 24px 64px' }}>
+        <div style={{ width: '100%', height: CERT_HEIGHT * certScale, display: 'flex', justifyContent: 'center' }}>
+          <div
+            style={{
+              boxShadow: '0 25px 60px -10px rgba(0,0,0,0.35)',
+              transform: `scale(${certScale})`,
+              transformOrigin: 'top center',
+            }}
+          >
+            <CertificateSheet
+              fullName={fullName} courseText={courseText} formattedDate={formattedDate}
+              certNo={T.certNo} signatureUrl={signatureUrl} line1={T.line1}
+              recLine={T.recLine} conf={T.conf}
+            />
+          </div>
         </div>
       </div>
     </div>
