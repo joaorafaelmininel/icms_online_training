@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import LanguageSwitcher from "./LanguageSwitcher";
 import TrainingsDropdown from "./TrainingsDropdown";
+import MobileHeaderMenu from "./MobileHeaderMenu";
 import { getCurrentLanguage } from "@/lib/i18n/language";
 import { auth } from "@/lib/i18n/translations";
 import { t } from "@/lib/i18n/language";
@@ -30,14 +31,14 @@ export default async function Header() {
   }
 
   return (
-    <header className="w-full border-b border-gray-100 bg-white shadow-sm">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-8 px-6 py-4">
+    <header className="relative w-full border-b border-gray-100 bg-white shadow-sm">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 lg:gap-8 lg:px-6 lg:py-4">
         {/* Logo - Links to INSARAG.org */}
-        <a 
-          href="https://www.insarag.org" 
-          target="_blank" 
+        <a
+          href="https://www.insarag.org"
+          target="_blank"
           rel="noopener noreferrer"
-          className="transition hover:opacity-80"
+          className="shrink-0 transition hover:opacity-80"
           title="Visit INSARAG Official Website"
         >
           <Image
@@ -46,23 +47,24 @@ export default async function Header() {
             width={310}
             height={152}
             priority
-            className="h-[100px] w-auto"
+            className="h-12 w-auto lg:h-[100px]"
           />
         </a>
 
-        {/* Center/Right - Trainings Dropdown (pushed right) */}
-        <div className="flex flex-1 items-center justify-end gap-4">
+        {/* Center/Right - Trainings Dropdown (pushed right) — desktop only,
+            folded into MobileHeaderMenu below `lg` */}
+        <div className="hidden flex-1 items-center justify-end gap-4 lg:flex">
           <TrainingsDropdown language={preferredLanguage} />
         </div>
 
-        {/* Right side - Language & Auth */}
-        <div className="flex items-center gap-4">
+        {/* Right side - Language & Auth — desktop only below `lg` */}
+        <div className="hidden items-center gap-4 lg:flex">
           {/* Language Switcher */}
-          <LanguageSwitcher 
+          <LanguageSwitcher
             currentLanguage={preferredLanguage}
             userId={user?.id}
           />
-          
+
           {/* Auth buttons or User menu */}
           {user ? (
             <UserMenuButton userId={user.id} language={preferredLanguage} />
@@ -75,18 +77,42 @@ export default async function Header() {
             </Link>
           )}
         </div>
+
+        {/* Mobile: compact auth + hamburger for Trainings/Language */}
+        <div className="flex flex-1 items-center justify-end gap-2 lg:hidden">
+          {user ? (
+            <UserMenuButton userId={user.id} language={preferredLanguage} compact />
+          ) : (
+            <Link
+              href="/auth?tab=signin&redirectTo=/dashboard"
+              className="rounded-lg bg-[#0B4A7C] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#083457]"
+            >
+              {t(auth.signIn, preferredLanguage)}
+            </Link>
+          )}
+          <MobileHeaderMenu
+            language={preferredLanguage}
+            userId={user?.id}
+            isLoggedIn={!!user}
+            logoutLabel={t(auth.logout, preferredLanguage)}
+          />
+        </div>
       </div>
     </header>
   );
 }
 
-// User menu button
-async function UserMenuButton({ 
-  userId, 
-  language 
-}: { 
-  userId: string; 
+// User menu button. `compact` drops the display name and the standalone
+// logout button (kept full-size for the mobile header row) — on mobile,
+// logout is reached from the profile page instead.
+async function UserMenuButton({
+  userId,
+  language,
+  compact = false,
+}: {
+  userId: string;
   language: 'en' | 'es';
+  compact?: boolean;
 }) {
   const supabase = await createClient();
   const { data: profile } = await supabase
@@ -96,6 +122,20 @@ async function UserMenuButton({
     .single();
 
   const displayName = profile?.first_name || profile?.username || 'User';
+
+  if (compact) {
+    return (
+      <Link
+        href="/profile"
+        className="flex items-center rounded-lg p-2 text-gray-700 transition hover:bg-gray-100"
+        aria-label={displayName}
+      >
+        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      </Link>
+    );
+  }
 
   return (
     <div className="flex items-center gap-3">

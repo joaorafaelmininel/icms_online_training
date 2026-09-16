@@ -185,7 +185,11 @@ export default function HeroCarousel({ language = "en" }: { language?: string })
 
       {/* ── CONTEÚDO do slide atual ── */}
       <div className="relative flex h-full items-center" style={{ zIndex: 20 }}>
-        <div className="mx-auto w-full max-w-7xl px-6">
+        {/* Extra left/right padding below `lg` keeps the title/subtitle text
+            clear of the prev/next arrow buttons, which sit at a fixed
+            ~12-20px inset regardless of viewport width — at phone widths the
+            standard px-6 padding put body text directly under them. */}
+        <div className="mx-auto w-full max-w-7xl px-16 lg:px-6">
           <div className="w-full max-w-3xl">
             <h1 className="text-4xl font-bold leading-tight text-white drop-shadow-2xl sm:text-5xl lg:text-6xl">
               {getText(slide.title)}
