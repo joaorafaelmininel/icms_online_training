@@ -20,6 +20,17 @@ body {
   font-family: var(--font-roboto), system-ui, sans-serif;
 }
 
+/* Form fields sit on white backgrounds throughout the app regardless of the
+   viewer's OS dark-mode setting, but inherited color from `body` would give
+   them near-white (--foreground) text in dark mode, making typed values
+   look identical to an empty field. Force a dark, always-readable default;
+   any component setting its own text color class still wins over this. */
+input,
+select,
+textarea {
+  color: #111827;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
