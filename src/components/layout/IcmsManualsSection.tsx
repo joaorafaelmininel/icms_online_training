@@ -51,43 +51,43 @@ const manuals: Manual[] = [
 export default function IcmsManualsSection({ language }: { language: Lang }) {
   return (
     <section
-      className="relative overflow-hidden py-20"
+      className="relative overflow-hidden py-12"
       style={{ background: 'linear-gradient(135deg, #0B4A7C 0%, #083457 100%)' }}
     >
       <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5" />
 
       <div className="relative mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-block rounded-full bg-white/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white/80">
+          <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white/80">
             {language === 'en' ? 'Official Documentation' : 'Documentación Oficial'}
           </span>
-          <h2 className="mt-4 text-3xl font-bold text-white md:text-4xl">
+          <h2 className="mt-3 text-2xl font-bold text-white md:text-3xl">
             {language === 'en' ? 'ICMS Manuals & Resources' : 'Manuales y Recursos del ICMS'}
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-white/80">
+          <p className="mt-2 text-sm leading-relaxed text-white/80">
             {language === 'en'
               ? 'Reference documentation to support your understanding of ICMS3.0 — download the official manuals and guides.'
               : 'Documentación de referencia para apoyar tu comprensión del ICMS3.0 — descarga los manuales y guías oficiales.'}
           </p>
         </div>
 
-        <div className="mt-14 grid gap-6 md:grid-cols-3">
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
           {manuals.map((manual) => (
             <a
               key={manual.id}
               href={manual.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl"
+              className="group relative overflow-hidden rounded-xl bg-white p-4 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl"
             >
               {manual.fileSize && (
-                <span className="absolute right-4 top-4 rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                <span className="absolute right-3 top-3 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                   {manual.fileSize}
                 </span>
               )}
 
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0B4A7C] text-white shadow">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0B4A7C] text-white shadow">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -97,13 +97,13 @@ export default function IcmsManualsSection({ language }: { language: Lang }) {
                 </svg>
               </div>
 
-              <h3 className="mt-4 text-lg font-bold text-gray-900">{manual.title[language]}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-gray-600">{manual.description[language]}</p>
+              <h3 className="mt-3 text-base font-bold text-gray-900">{manual.title[language]}</h3>
+              <p className="mt-1 text-xs leading-relaxed text-gray-600">{manual.description[language]}</p>
 
-              <div className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-[#0B4A7C]">
+              <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#0B4A7C]">
                 {language === 'en' ? 'Download PDF' : 'Descargar PDF'}
                 <svg
-                  className="h-4 w-4 transition group-hover:translate-y-0.5"
+                  className="h-3.5 w-3.5 transition group-hover:translate-y-0.5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
