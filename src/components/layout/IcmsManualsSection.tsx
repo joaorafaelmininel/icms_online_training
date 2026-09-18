@@ -51,6 +51,7 @@ const manuals: Manual[] = [
 export default function IcmsManualsSection({ language }: { language: Lang }) {
   return (
     <section
+      id="icms-manuals"
       className="relative overflow-hidden py-12"
       style={{ background: 'linear-gradient(135deg, #0B4A7C 0%, #083457 100%)' }}
     >

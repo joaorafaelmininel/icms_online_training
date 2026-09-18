@@ -51,10 +51,16 @@ export default async function Header() {
           />
         </a>
 
-        {/* Center/Right - Trainings Dropdown (pushed right) — desktop only,
-            folded into MobileHeaderMenu below `lg` */}
-        <div className="hidden flex-1 items-center justify-end gap-4 lg:flex">
+        {/* Center/Right - Trainings Dropdown + Manuals link (pushed right)
+            — desktop only, folded into MobileHeaderMenu below `lg` */}
+        <div className="hidden flex-1 items-center justify-end gap-2 lg:flex">
           <TrainingsDropdown language={preferredLanguage} />
+          <Link
+            href="/#icms-manuals"
+            className="rounded-lg px-4 py-2 text-base font-semibold uppercase text-[#0B4A7C] transition hover:bg-blue-50"
+          >
+            {preferredLanguage === 'en' ? 'ICMS3.0 Manuals' : 'Manuales ICMS3.0'}
+          </Link>
         </div>
 
         {/* Right side - Language & Auth — desktop only below `lg` */}
