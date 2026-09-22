@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getCurrentLanguage, t } from "@/lib/i18n/language";
 import { landing, common } from "@/lib/i18n/translations";
 import HeroCarousel from "@/components/layout/HeroCarousel";
+import IcmsManualsSection from "@/components/layout/IcmsManualsSection";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -274,6 +275,9 @@ export default async function HomePage() {
 
   </div>
 </section>
+
+      {/* ICMS MANUALS & RESOURCES SECTION */}
+      <IcmsManualsSection language={language} />
 
       {/* ABOUT INSARAG SECTION */}
       <section className="bg-gray-50 py-20">

@@ -1,8 +1,5 @@
 // src/components/layout/IcmsManualsSection.tsx
-// Landing page section linking to official ICMS reference documentation
-// (manuals, guidelines, quick reference guides). PLACEHOLDER content —
-// titles, descriptions and hrefs below are examples only, swapped for the
-// real manuals (and their hosted PDF URLs) once provided.
+// Landing page section linking to official ICMS reference documentation.
 
 type Lang = 'en' | 'es';
 
@@ -14,36 +11,25 @@ interface Manual {
   fileSize?: string;
 }
 
-// PLACEHOLDER — replace with the real manuals, titles and PDF links.
 const manuals: Manual[] = [
   {
-    id: 'icms3-user-manual',
-    title: { en: 'ICMS3.0 User Manual', es: 'Manual de Usuario ICMS3.0' },
+    id: 'icms3-team-guide',
+    title: { en: 'ICMS3.0 — Team Guide', es: 'ICMS3.0 — Guía de Equipo' },
     description: {
-      en: 'Complete operational reference for the ICMS3.0 system — field, command, coordination, and network levels.',
-      es: 'Referencia operativa completa del sistema ICMS3.0 — niveles de campo, mando, coordinación y red.',
+      en: 'Introduction to ICMS3.0 and the Team Module — field applications, worksite triage, and victim extrication. For team leaders, command point staff, and field staff.',
+      es: 'Introducción al ICMS3.0 y al Módulo de Equipo — aplicaciones de campo, triaje de sitios de trabajo y extricación de víctimas. Para líderes de equipo, personal del punto de mando y personal de campo.',
     },
-    href: '#',
+    href: '/manuals/icms3-team-guide.pdf',
     fileSize: 'PDF',
   },
   {
-    id: 'insarag-guidelines',
-    title: { en: 'INSARAG Guidelines', es: 'Directrices INSARAG' },
+    id: 'icms3-ucc-guide',
+    title: { en: 'ICMS3.0 — UCC Guide', es: 'ICMS3.0 — Guía de la UCC' },
     description: {
-      en: 'The five-volume set of INSARAG Guidelines, including operational forms and technical guidance notes.',
-      es: 'El conjunto de cinco volúmenes de las Directrices de INSARAG, incluyendo formularios operativos y notas de orientación técnica.',
+      en: 'Companion guide to the UCC / Coordination Centre functions — sector management, tasking, and team tracking. For UCC staff, RDC, and sector coordinators.',
+      es: 'Guía complementaria sobre las funciones de la UCC / Centro de Coordinación — gestión de sectores, asignación de tareas y seguimiento de equipos. Para personal de la UCC, RDC y coordinadores de sector.',
     },
-    href: '#',
-    fileSize: 'PDF',
-  },
-  {
-    id: 'icms3-quick-reference',
-    title: { en: 'ICMS3.0 Quick Reference Guide', es: 'Guía de Referencia Rápida ICMS3.0' },
-    description: {
-      en: 'A condensed field guide covering the core workflows in ArcGIS® QuickCapture and Field Maps.',
-      es: 'Una guía de campo condensada que cubre los flujos de trabajo principales en ArcGIS® QuickCapture y Field Maps.',
-    },
-    href: '#',
+    href: '/manuals/icms3-ucc-guide.pdf',
     fileSize: 'PDF',
   },
 ];
@@ -72,7 +58,7 @@ export default function IcmsManualsSection({ language }: { language: Lang }) {
           </p>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+        <div className="mx-auto mt-8 grid max-w-3xl gap-4 md:grid-cols-2">
           {manuals.map((manual) => (
             <a
               key={manual.id}
