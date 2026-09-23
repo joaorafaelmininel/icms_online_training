@@ -8,7 +8,21 @@ import { landing, common } from "@/lib/i18n/translations";
 import HeroCarousel from "@/components/layout/HeroCarousel";
 import IcmsManualsSection from "@/components/layout/IcmsManualsSection";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: { code?: string };
+}) {
+  // Supabase's password-recovery (and other magic-link) emails are meant to
+  // land on a specific page (e.g. /auth/reset-password), but its own email
+  // template falls back to the bare Site URL — landing here instead — when
+  // it doesn't carry the intended path through. Recover from that by
+  // forwarding the auth code onward rather than stranding it on the landing
+  // page, where nothing consumes it.
+  if (searchParams.code) {
+    redirect(`/auth/reset-password?code=${encodeURIComponent(searchParams.code)}`);
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (user) redirect('/dashboard');
