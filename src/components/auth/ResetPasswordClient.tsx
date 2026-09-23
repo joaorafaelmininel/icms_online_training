@@ -4,7 +4,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function ResetPasswordClient() {
   const router = useRouter()
@@ -12,11 +12,65 @@ export default function ResetPasswordClient() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  // The recovery link only proves the user owns the account once its `code`
+  // (PKCE) or hash-fragment tokens (implicit flow) have been exchanged for a
+  // real session — neither happens by itself, so the form stays disabled
+  // until that exchange succeeds.
+  const [sessionReady, setSessionReady] = useState(false)
+  const [linkInvalid, setLinkInvalid] = useState(false)
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function establishSession() {
+      // Supabase's default recovery email verifies the token on its own
+      // server, then redirects back here with either a PKCE `code` query
+      // param or (implicit flow) the session tokens already in the URL
+      // hash — `detectSessionInUrl` (on by default) picks up the latter
+      // automatically, but the `code` case needs an explicit exchange.
+      const code = new URLSearchParams(window.location.search).get('code')
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (cancelled) return
+        if (error) {
+          setLinkInvalid(true)
+          return
+        }
+        setSessionReady(true)
+        return
+      }
+
+      const { data } = await supabase.auth.getSession()
+      if (cancelled) return
+      if (data.session) {
+        setSessionReady(true)
+      } else {
+        setLinkInvalid(true)
+      }
+    }
+
+    establishSession()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        setSessionReady(true)
+        setLinkInvalid(false)
+      }
+    })
+
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,63 +145,79 @@ export default function ResetPasswordClient() {
           </p>
         </div>
 
-        <form onSubmit={handleResetPassword} className="space-y-4">
-          {/* New Password */}
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              New Password <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Min 6 characters"
-            />
-          </div>
-
-          {/* Confirm Password */}
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm Password <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              required
-              minLength={6}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Re-enter password"
-            />
-          </div>
-
-          {/* Messages */}
-          {message && (
-            <div
-              className={`p-3 rounded-md text-sm ${
-                message.type === 'success'
-                  ? 'bg-green-50 text-green-800 border border-green-200'
-                  : 'bg-red-50 text-red-800 border border-red-200'
-              }`}
-            >
-              {message.text}
+        {linkInvalid ? (
+          <div className="space-y-4">
+            <div className="p-3 rounded-md text-sm bg-red-50 text-red-800 border border-red-200">
+              This password reset link is invalid or has expired. Please request a new one —
+              note that a reset link must be opened on the same device and browser used to
+              request it.
             </div>
-          )}
+            <Link
+              href="/auth/forgot-password"
+              className="block w-full text-center bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-md transition-colors"
+            >
+              Request a new link
+            </Link>
+          </div>
+        ) : (
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            {/* New Password */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                New Password <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Min 6 characters"
+              />
+            </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isLoading || !password || !confirmPassword}
-            className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-md transition-colors"
-          >
-            {isLoading ? 'Updating...' : 'Update Password'}
-          </button>
-        </form>
+            {/* Confirm Password */}
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm Password <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                required
+                minLength={6}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Re-enter password"
+              />
+            </div>
+
+            {/* Messages */}
+            {message && (
+              <div
+                className={`p-3 rounded-md text-sm ${
+                  message.type === 'success'
+                    ? 'bg-green-50 text-green-800 border border-green-200'
+                    : 'bg-red-50 text-red-800 border border-red-200'
+                }`}
+              >
+                {message.text}
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isLoading || !sessionReady || !password || !confirmPassword}
+              className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-md transition-colors"
+            >
+              {!sessionReady ? 'Verifying link...' : isLoading ? 'Updating...' : 'Update Password'}
+            </button>
+          </form>
+        )}
 
         {/* Back to Sign In */}
         <div className="mt-6 text-center">
