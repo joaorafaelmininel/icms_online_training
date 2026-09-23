@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import LanguageSwitcher from "./LanguageSwitcher";
 import TrainingsDropdown from "./TrainingsDropdown";
+import IcmsManualsDropdown from "./IcmsManualsDropdown";
 import MobileHeaderMenu from "./MobileHeaderMenu";
 import { getCurrentLanguage } from "@/lib/i18n/language";
 import { auth } from "@/lib/i18n/translations";
@@ -55,12 +56,7 @@ export default async function Header() {
             — desktop only, folded into MobileHeaderMenu below `lg` */}
         <div className="hidden flex-1 items-center justify-end gap-2 lg:flex">
           <TrainingsDropdown language={preferredLanguage} />
-          <Link
-            href="/#icms-manuals"
-            className="rounded-lg px-4 py-2 text-base font-semibold uppercase text-[#0B4A7C] transition hover:bg-blue-50"
-          >
-            {preferredLanguage === 'en' ? 'ICMS3.0 Manuals' : 'Manuales ICMS3.0'}
-          </Link>
+          <IcmsManualsDropdown language={preferredLanguage} />
         </div>
 
         {/* Right side - Language & Auth — desktop only below `lg` */}

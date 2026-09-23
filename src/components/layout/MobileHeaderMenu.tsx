@@ -6,8 +6,8 @@
 // alongside the logo and sign-in button on a phone-width screen.
 
 import { useState } from 'react';
-import Link from 'next/link';
 import TrainingsDropdown from './TrainingsDropdown';
+import IcmsManualsDropdown from './IcmsManualsDropdown';
 import LanguageSwitcher from './LanguageSwitcher';
 
 interface MobileHeaderMenuProps {
@@ -44,13 +44,7 @@ export default function MobileHeaderMenu({ language, userId, isLoggedIn, logoutL
         <div className="absolute left-0 right-0 top-full z-40 border-b border-gray-100 bg-white px-4 py-4 shadow-lg">
           <div className="flex flex-col gap-3">
             <TrainingsDropdown language={language} />
-            <Link
-              href="/#icms-manuals"
-              onClick={() => setIsOpen(false)}
-              className="rounded-lg border border-gray-200 px-4 py-2 text-base font-semibold uppercase text-[#0B4A7C] transition hover:bg-blue-50"
-            >
-              {language === 'en' ? 'ICMS3.0 Manuals' : 'Manuales ICMS3.0'}
-            </Link>
+            <IcmsManualsDropdown language={language} />
             <LanguageSwitcher currentLanguage={language} userId={userId} />
             {isLoggedIn && (
               <form action="/api/auth/logout" method="POST">
