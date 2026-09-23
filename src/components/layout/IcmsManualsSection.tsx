@@ -16,8 +16,8 @@ const manuals: Manual[] = [
     id: 'icms3-team-guide',
     title: { en: 'ICMS3.0 — Team Guide', es: 'ICMS3.0 — Guía de Equipo' },
     description: {
-      en: 'Introduction to ICMS3.0 and the Team Module — field applications, worksite triage, and victim extrication. For team leaders, command point staff, and field staff.',
-      es: 'Introducción al ICMS3.0 y al Módulo de Equipo — aplicaciones de campo, triaje de sitios de trabajo y extricación de víctimas. Para líderes de equipo, personal del punto de mando y personal de campo.',
+      en: 'Operational reference covering ICMS3.0 field applications, worksite triage, and victim extrication procedures. Intended for USAR team leaders, command point staff, and field personnel.',
+      es: 'Referencia operativa sobre las aplicaciones de campo del ICMS3.0, los procedimientos de triaje de sitios de trabajo y de extricación de víctimas. Destinada a líderes de equipo USAR, personal del punto de mando y personal de campo.',
     },
     href: '/manuals/icms3-team-guide.pdf',
     fileSize: 'PDF',
@@ -26,8 +26,8 @@ const manuals: Manual[] = [
     id: 'icms3-ucc-guide',
     title: { en: 'ICMS3.0 — UCC Guide', es: 'ICMS3.0 — Guía de la UCC' },
     description: {
-      en: 'Companion guide to the UCC / Coordination Centre functions — sector management, tasking, and team tracking. For UCC staff, RDC, and sector coordinators.',
-      es: 'Guía complementaria sobre las funciones de la UCC / Centro de Coordinación — gestión de sectores, asignación de tareas y seguimiento de equipos. Para personal de la UCC, RDC y coordinadores de sector.',
+      en: 'Reference documentation for UCC / Coordination Centre functions, covering sector management, tasking, and team-tracking procedures. Intended for UCC staff, RDC personnel, and sector coordinators.',
+      es: 'Documentación de referencia sobre las funciones de la UCC / Centro de Coordinación, que abarca los procedimientos de gestión de sectores, asignación de tareas y seguimiento de equipos. Destinada al personal de la UCC, al RDC y a los coordinadores de sector.',
     },
     href: '/manuals/icms3-ucc-guide.pdf',
     fileSize: 'PDF',
@@ -53,8 +53,8 @@ export default function IcmsManualsSection({ language }: { language: Lang }) {
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-white/80">
             {language === 'en'
-              ? 'Reference documentation to support your understanding of ICMS3.0 — download the official manuals and guides.'
-              : 'Documentación de referencia para apoyar tu comprensión del ICMS3.0 — descarga los manuales y guías oficiales.'}
+              ? 'Official reference documentation for ICMS3.0 operations, covering field, team, and coordination-level functions.'
+              : 'Documentación de referencia oficial para las operaciones del ICMS3.0, que abarca las funciones a nivel de campo, equipo y coordinación.'}
           </p>
         </div>
 
