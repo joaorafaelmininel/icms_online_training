@@ -92,7 +92,7 @@ export default function TrainingsDropdown({ language }: TrainingsDropdownProps) 
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        <span>{language === 'en' ? 'Trainings' : 'Capacitaciones'}</span>
+        <span>{language === 'en' ? 'Training' : 'Capacitaciones'}</span>
         <svg
           className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
@@ -110,7 +110,7 @@ export default function TrainingsDropdown({ language }: TrainingsDropdownProps) 
             {/* Header do dropdown */}
             <div className="border-b border-gray-100 px-3 py-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                {language === 'en' ? 'Available Trainings' : 'Capacitaciones Disponibles'}
+                {language === 'en' ? 'Available Training' : 'Capacitaciones Disponibles'}
               </p>
             </div>
 
