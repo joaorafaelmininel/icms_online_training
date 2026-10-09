@@ -338,7 +338,13 @@ export default function FinalExamClient({
 
               {/* Start */}
               <div className="mt-6 text-center">
-                {canAttempt ? (
+                {totalQ === 0 ? (
+                  <p className="text-sm font-medium text-amber-600">
+                    {language === 'en'
+                      ? 'This exam is not available yet. Please check back later.'
+                      : 'Este examen aún no está disponible. Vuelve a intentarlo más tarde.'}
+                  </p>
+                ) : canAttempt ? (
                   <button
                     onClick={() => setPhase('exam')}
                     className="rounded-lg bg-[#0B4A7C] px-10 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#083457] hover:shadow-md"
@@ -388,6 +394,26 @@ export default function FinalExamClient({
   if (phase === 'exam') {
     const q = questions[currentQ];
     const unanswered = totalQ - answeredCount;
+
+    if (!q) {
+      return (
+        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+          <div className="mx-auto max-w-2xl px-4 py-14 text-center sm:px-6">
+            <p className="text-sm font-medium text-red-600">
+              {language === 'en'
+                ? 'This exam could not be loaded. Please go back and try again.'
+                : 'No se pudo cargar este examen. Vuelve atrás e inténtalo de nuevo.'}
+            </p>
+            <Link
+              href={`/courses/${course.slug}`}
+              className="mt-4 inline-block rounded-lg border border-gray-200 bg-white px-6 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
+            >
+              {t.backToCourse}
+            </Link>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -443,7 +469,7 @@ export default function FinalExamClient({
             </h3>
 
             <div className="mt-5 space-y-2.5">
-              {q.options.map((opt, oi) => {
+              {(q.options || []).map((opt, oi) => {
                 const selected = answers[q.id] === opt.id;
                 return (
                   <button
@@ -667,7 +693,7 @@ export default function FinalExamClient({
 
                   {/* Options review */}
                   <div className="mt-3 space-y-1.5">
-                    {origQ.options.map((opt, oi) => {
+                    {(origQ.options || []).map((opt, oi) => {
                       const isSelected = rq.selected_answer === opt.id;
                       const isCorrect = rq.correct_answer === opt.id;
 
