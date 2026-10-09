@@ -213,7 +213,12 @@ export default function FinalExamClient({
     setError(null);
 
     try {
-      const res = await submitFinalExam(course.id, enrollmentId, answers);
+      const res = await submitFinalExam(
+        course.id,
+        enrollmentId,
+        answers,
+        questions.map((q) => q.id)
+      );
       if (res.error) {
         setError(res.error);
         setSubmitting(false);
@@ -234,7 +239,7 @@ export default function FinalExamClient({
     } finally {
       setSubmitting(false);
     }
-  }, [answers, course.id, enrollmentId, remaining]);
+  }, [answers, course.id, enrollmentId, remaining, questions]);
 
   const handleRetake = useCallback(() => {
     setAnswers({});

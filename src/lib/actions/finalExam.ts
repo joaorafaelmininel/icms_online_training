@@ -10,7 +10,8 @@ const MAX_ATTEMPTS = 3;
 export async function submitFinalExam(
   courseId: string,
   enrollmentId: string,
-  answers: Record<string, string> // { questionId: selectedOptionId }
+  answers: Record<string, string>, // { questionId: selectedOptionId }
+  questionIds: string[] // exactly the questions presented for this attempt (random subset of the bank)
 ): Promise<{ result?: FinalExamResult; error?: string }> {
   const supabase = await createClient();
   const {
@@ -35,10 +36,18 @@ export async function submitFinalExam(
   if (attemptsTaken >= MAX_ATTEMPTS) return { error: `Maximum attempts (${MAX_ATTEMPTS}) reached.` };
 
   // ── 2. Fetch questions with correct answers (server only) ───────────────
+  // Scoped to exactly the subset the page showed for this attempt — the
+  // bank can hold more questions than are ever shown at once (random
+  // rotating subset), so grading must not pull in ones the user never saw.
+  if (!Array.isArray(questionIds) || questionIds.length === 0) {
+    return { error: 'No questions to grade.' };
+  }
+
   const { data: questions, error: qErr } = await supabase
     .from('final_exam_questions')
     .select('*')
     .eq('course_id', courseId)
+    .in('id', questionIds)
     .order('question_number');
 
   if (qErr || !questions?.length) return { error: 'Failed to load exam questions.' };

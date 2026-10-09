@@ -135,7 +135,7 @@ export default async function FinalExamPage({
     .eq('course_id', courseId)
     .order('question_number')
 
-  const questions: FinalExamClientQuestion[] = (rawQ || []).map((q: any) => ({
+  const pool: FinalExamClientQuestion[] = (rawQ || []).map((q: any) => ({
     id: q.id,
     question_number: q.question_number,
     question_text: q.question_text,
@@ -143,6 +143,17 @@ export default async function FinalExamPage({
     points: q.points,
     source_module: q.source_module,
   }))
+
+  // Draw a random subset per attempt instead of always showing the same
+  // fixed set in the same order — the question bank can hold more items
+  // than FINAL_EXAM_SIZE so each attempt (and each retake) rotates.
+  const FINAL_EXAM_SIZE = 20
+  const shuffled = [...pool]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  const questions = shuffled.slice(0, Math.min(FINAL_EXAM_SIZE, shuffled.length))
 
   /* ------------------------------------------------------------------
    * PREVIOUS ATTEMPTS
