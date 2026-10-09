@@ -1,7 +1,7 @@
 // src/app/dashboard/layout.tsx
 import { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getCurrentLanguage } from '@/lib/i18n/language'
 import DashboardHeader from '@/components/layout/DashboardHeader'
 import Footer from '@/components/layout/Footer'
@@ -22,9 +22,7 @@ export default async function DashboardLayout({
   const supabase = createClient()
   const language = await getCurrentLanguage()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getAuthUser(supabase)
 
   if (!user) {
     redirect('/auth')

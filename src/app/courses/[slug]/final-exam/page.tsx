@@ -1,7 +1,7 @@
 // src/app/courses/[slug]/final-exam/page.tsx
 
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getCurrentLanguage } from '@/lib/i18n/language'
 import FinalExamClient from '@/components/courses/FinalExamClient'
 import type { Course } from '@/lib/types/courses'
@@ -33,9 +33,7 @@ export default async function FinalExamPage({
   /* ------------------------------------------------------------------
    * AUTH
    * ------------------------------------------------------------------ */
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getAuthUser(supabase)
 
   if (!user) {
     redirect(`/auth?tab=signin&redirectTo=/courses/${encodeURIComponent(slug)}/final-exam`)

@@ -21,9 +21,18 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  try {
+    await supabase.auth.getUser()
+  } catch {
+    // A stale/invalid refresh token makes getUser() throw instead of just
+    // returning { user: null } — left uncaught, that crashed the request
+    // for every route (middleware runs on all of them), well before any
+    // page got a chance to handle it. Treat it as "not logged in": clear
+    // the bad Supabase cookies so the client stops retrying with them.
+    request.cookies.getAll().forEach(({ name }) => {
+      if (name.startsWith('sb-')) response.cookies.delete(name)
+    })
+  }
 
   return response
 }

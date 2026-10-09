@@ -1,7 +1,7 @@
 // src/app/courses/[slug]/modules/[number]/page.tsx
 
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getCurrentLanguage } from '@/lib/i18n/language'
 import ModuleViewerClient from '@/components/modules/ModuleViewerClient'
 import type { Slide } from '@/lib/types/slides'
@@ -69,9 +69,7 @@ export default async function ModulePage({
 
   /* ───────── AUTH ───────── */
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getAuthUser(supabase)
 
   if (!user) {
     redirect(

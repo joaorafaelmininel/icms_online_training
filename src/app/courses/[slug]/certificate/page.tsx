@@ -1,7 +1,7 @@
 // src/app/courses/[slug]/certificate/page.tsx
 
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getCurrentLanguage } from '@/lib/i18n/language'
 import { getCertificateData } from '@/lib/certificate/data'
 import CertificateClient from '@/components/courses/CertificateClient'
@@ -20,7 +20,7 @@ export default async function CertificatePage({
   const supabase = await createClient()
 
   // AUTH
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser(supabase)
   if (!user) {
     redirect(`/auth?tab=signin&redirectTo=/courses/${encodeURIComponent(slug)}/certificate`)
   }

@@ -1,6 +1,6 @@
 // src/app/courses/[slug]/modules/[number]/quiz/page.tsx
 import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getCurrentLanguage } from '@/lib/i18n/language'
 import QuizClient from '@/components/modules/QuizClient'
 import type { QuizClientQuestion } from '@/lib/types/quiz'
@@ -56,9 +56,7 @@ export default async function QuizPage({ params }: Props) {
   const supabase = createClient()
   const language = (await getCurrentLanguage()) as 'en' | 'es'
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getAuthUser(supabase)
 
   if (!user) {
     redirect(`/auth?redirectTo=/courses/${slug}/modules/${number}/quiz`)

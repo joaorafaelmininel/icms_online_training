@@ -1,6 +1,6 @@
 // src/app/courses/[slug]/page.tsx
 import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getCurrentLanguage } from '@/lib/i18n/language'
 import CoursePageClient from '@/components/courses/CoursePageClient'
 import DashboardHeader from '@/components/layout/DashboardHeader'
@@ -60,9 +60,7 @@ export default async function CoursePage({ params }: Props) {
   const supabase = createClient()
   const language = (await getCurrentLanguage()) as 'en' | 'es'
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getAuthUser(supabase)
 
   if (!user) {
     redirect(`/auth?redirectTo=/courses/${slug}`)

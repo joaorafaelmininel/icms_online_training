@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getCurrentLanguage } from '@/lib/i18n/language'
 
 type Lang = 'en' | 'es'
@@ -48,7 +48,7 @@ const i18n: Record<Lang, any> = {
 export default async function CertificatesPage() {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser(supabase)
   if (!user) redirect('/auth?tab=signin&redirectTo=/certificates')
 
   const language: Lang = (await getCurrentLanguage()) as Lang
