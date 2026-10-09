@@ -469,7 +469,7 @@ export default function FinalExamClient({
             </h3>
 
             <div className="mt-5 space-y-2.5">
-              {(q.options || []).map((opt, oi) => {
+              {(Array.isArray(q.options) ? q.options : []).map((opt, oi) => {
                 const selected = answers[q.id] === opt.id;
                 return (
                   <button
@@ -693,7 +693,7 @@ export default function FinalExamClient({
 
                   {/* Options review */}
                   <div className="mt-3 space-y-1.5">
-                    {(origQ.options || []).map((opt, oi) => {
+                    {(Array.isArray(origQ.options) ? origQ.options : []).map((opt, oi) => {
                       const isSelected = rq.selected_answer === opt.id;
                       const isCorrect = rq.correct_answer === opt.id;
 
