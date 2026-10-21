@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Mapa de Estudos</title>
+<meta name="description" content="Mapas mentais de estudo que funcionam sem internet, com pacotes para compartilhar.">
+<meta name="theme-color" content="#f3f4f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0f1d" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mapas">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preload" href="fonts/figtree-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/newsreader-latin-500-italic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app lib-open insp-open" id="app">
+  <section class="stage" id="stage" aria-label="Mapa mental">
+    <div id="world"><svg id="edges" width="1" height="1"></svg><div id="nodes"></div></div>
+  </section>
+  <section class="outline" id="outline" aria-label="Mapa em lista" hidden><div class="ol-inner" id="ol-inner"></div></section>
+
+  <header class="top">
+    <div class="pill left glass">
+      <button class="icon-btn on" id="btn-lib" aria-label="Biblioteca de mapas" title="Biblioteca de mapas">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H9v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M9 4h9.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H9"/></svg>
+      </button>
+      <div class="mark" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="4.2" fill="var(--gold-ring)"/><path d="M19.6 14C23 9 25 8 29 8M19.6 18c3.4 5 5.4 6 9.4 6M12.4 14C9 9 7 8 3 8m9.4 10c-3.4 5-5.4 6-9.4 6" stroke="var(--fg)" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="title-block">
+        <div class="eyebrow"><span class="save-dot" id="save-dot"></span><span id="save-state">Mapa de estudo</span></div>
+        <div class="map-title" id="map-title"></div>
+      </div>
+    </div>
+    <div class="pill right glass">
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="search" type="search" placeholder="Buscar conceito" aria-label="Buscar conceito" autocomplete="off" enterkeyhint="search">
+      </div>
+      <button class="icon-btn only-narrow" id="btn-search" aria-label="Buscar" title="Buscar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      </button>
+      <div class="seg" role="group" aria-label="Modo de visualização">
+        <button class="icon-btn on" id="v-map" aria-label="Ver como mapa" title="Ver como mapa">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="2.6"/><path d="M14.3 10.8C16.5 7.5 18 7 21 7M14.3 13.2c2.2 3.3 3.7 3.8 6.7 3.8M9.7 10.8C7.5 7.5 6 7 3 7m6.7 6.2C7.5 16.5 6 17 3 17"/></svg>
+        </button>
+        <button class="icon-btn" id="v-list" aria-label="Ver como lista" title="Ver como lista (leitura)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M8 12h12M8 18h12"/><path d="M4 12h.01M4 18h.01" stroke-width="2.6"/></svg>
+        </button>
+      </div>
+      <div class="ring-wrap" title="Tópicos marcados como dominados">
+        <span id="head-ring"></span>
+        <div><b id="head-pct">0%</b><small id="head-sub">dominado</small></div>
+      </div>
+      <button class="btn primary train" id="btn-train" title="Treinar com flashcards" aria-label="Treinar com flashcards">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="14" height="14" rx="2.5"/><path d="M7 3h11.5A2.5 2.5 0 0 1 21 5.5V17"/></svg><span class="tr-label">Treinar</span>
+      </button>
+      <button class="icon-btn" id="btn-share" aria-haspopup="true" aria-label="Compartilhar e exportar" title="Compartilhar e exportar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 8.5 12 4l4.5 4.5"/><path d="M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"/></svg>
+      </button>
+      <button class="icon-btn on hide-phone" id="btn-insp" aria-label="Painel do tópico" title="Painel do tópico">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M14.5 4v16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="searchbar glass" id="searchbar" hidden>
+    <input id="search-m" type="search" placeholder="Buscar conceito ou nota" aria-label="Buscar conceito" autocomplete="off" enterkeyhint="search">
+    <button class="icon-btn" id="search-close" aria-label="Fechar busca">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+
+  <div class="scrim" id="scrim"></div>
+
+  <aside class="panel lib glass" id="lib" aria-label="Biblioteca">
+    <div class="panel-head"><h2>Biblioteca</h2>
+      <button class="icon-btn only-narrow" id="lib-close" aria-label="Fechar biblioteca">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="lib-actions">
+      <button class="btn primary wide" id="btn-new">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Novo mapa
+      </button>
+      <button class="btn" id="btn-import" title="Abrir pacote ou importar .xmind, .md, .txt, .opml">Abrir</button>
+      <input type="file" id="file" hidden multiple>
+    </div>
+    <div class="lib-scroll" id="lib-scroll"></div>
+    <div class="lib-foot">
+      <div class="offline-line"><span class="save-dot" id="off-dot"></span><span id="off-text">Preparando para funcionar sem internet…</span></div>
+      <div class="links">
+        <button class="btn" id="btn-install" hidden>Instalar no aparelho</button>
+        <button class="btn" id="btn-help">Como compartilhar</button>
+      </div>
+    </div>
+  </aside>
+
+  <aside class="panel insp glass" id="insp" aria-label="Painel do tópico">
+    <button class="sheet-handle" id="sheet-handle" aria-label="Expandir ou recolher o painel"></button>
+    <button class="icon-btn sheet-close" id="insp-close" aria-label="Fechar painel">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <div class="insp-scroll">
+      <div id="insp-node" class="sec" hidden>
+        <div class="eyebrow" id="insp-kind" style="padding-right:40px">Tópico</div>
+        <textarea class="title-input" id="insp-text" rows="1" aria-label="Texto do tópico" enterkeyhint="done"></textarea>
+        <div class="sec" style="gap:8px">
+          <div class="eyebrow">Tipo</div>
+          <div class="chips" id="insp-types"></div>
+        </div>
+        <div class="sec" style="gap:8px">
+          <div class="eyebrow">Situação</div>
+          <div class="chips" id="insp-status"></div>
+        </div>
+        <div class="sec" style="gap:8px">
+          <div class="eyebrow">Notas</div>
+          <textarea class="note-field" id="insp-note" placeholder="Definição com suas palavras, fórmula, exemplo, onde aparece no material…"></textarea>
+        </div>
+        <div class="branch-line" id="insp-branch"><div class="bar"><i id="insp-bar"></i></div><span id="insp-sub"></span></div>
+        <button class="btn wide" id="btn-train-branch">Treinar este ramo</button>
+      </div>
+      <div id="insp-map" class="sec">
+        <div class="eyebrow" style="padding-right:40px" id="ov-eyebrow">Visão geral</div>
+        <h2 class="title-input" style="border:0;margin:0;padding:0" id="insp-map-title"></h2>
+        <div class="overview"><span id="ov-ring"></span><div class="big"><b id="ov-pct">0%</b><span id="ov-sub"></span></div></div>
+        <div class="counts">
+          <div class="r"><b id="s-review">0</b><span>A revisar</span></div>
+          <div class="l"><b id="s-learning">0</b><span>Estudando</span></div>
+          <div class="d"><b id="s-done">0</b><span>Dominados</span></div>
+        </div>
+        <div class="sec" style="gap:8px">
+          <div class="eyebrow">Paleta do mapa</div>
+          <div class="swatches" id="swatches"></div>
+        </div>
+        <div class="sec" style="gap:8px">
+          <div class="eyebrow">Pacote</div>
+          <button class="btn wide" id="btn-folder"></button>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="eyebrow">Fila de revisão</div>
+        <ul class="rev-list" id="rev-list"></ul>
+      </div>
+      <details class="keys-box sec">
+        <summary class="eyebrow">Atalhos de teclado</summary>
+        <div class="keys">
+          <kbd>Tab</kbd><span>Novo subtópico</span>
+          <kbd>Enter</kbd><span>Novo tópico irmão</span>
+          <kbd>F2</kbd><span>Editar (ou só comece a digitar)</span>
+          <kbd>Shift+Enter</kbd><span>Quebra de linha ao editar</span>
+          <kbd>Delete</kbd><span>Excluir tópico</span>
+          <kbd>← ↑ → ↓</kbd><span>Navegar</span>
+          <kbd>Alt+↑ ↓</kbd><span>Reordenar</span>
+          <kbd>Alt+1 2 3 0</kbd><span>Revisar, estudando, dominado, limpar</span>
+          <kbd>Ctrl+.</kbd><span>Recolher ou expandir</span>
+          <kbd>Ctrl+C / V</kbd><span>Copiar ramo, colar lista</span>
+          <kbd>Ctrl+Z</kbd><span>Desfazer</span>
+          <kbd>L</kbd><span>Alternar mapa e lista (sem seleção)</span>
+          <kbd>T</kbd><span>Treinar (sem seleção)</span>
+        </div>
+      </details>
+    </div>
+  </aside>
+
+  <div class="dock-wrap">
+    <div class="dock glass" role="toolbar" aria-label="Ferramentas do mapa">
+      <button class="icon-btn" id="t-child" title="Adicionar subtópico (Tab)" aria-label="Adicionar subtópico">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2.5" y="8.5" width="8" height="7" rx="2"/><path d="M10.5 12c3 0 3-5 6.5-5M17 12h5M19.5 9.5v5"/></svg>
+      </button>
+      <button class="icon-btn" id="t-sib" title="Adicionar tópico irmão (Enter)" aria-label="Adicionar tópico irmão">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="3" width="14" height="6.5" rx="2"/><path d="M12 13.5v7M8.5 17h7"/></svg>
+      </button>
+      <button class="icon-btn" id="t-edit" title="Editar texto (F2)" aria-label="Editar texto">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>
+      </button>
+      <button class="icon-btn hide-phone map-only" id="t-fold" title="Recolher ou expandir (Ctrl+.)" aria-label="Recolher ou expandir">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M8.5 12h7"/></svg>
+      </button>
+      <button class="icon-btn" id="t-del" title="Excluir tópico (Delete)" aria-label="Excluir tópico">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l.9 12.5h9.2L17.5 7"/></svg>
+      </button>
+      <span class="divider"></span>
+      <button class="icon-btn" id="btn-undo" aria-label="Desfazer" title="Desfazer (Ctrl+Z)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+      </button>
+      <button class="icon-btn hide-phone" id="btn-redo" aria-label="Refazer" title="Refazer (Ctrl+Shift+Z)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>
+      </button>
+      <span class="divider map-only"></span>
+      <button class="icon-btn hide-phone map-only" id="z-out" title="Diminuir zoom" aria-label="Diminuir zoom">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 12h12"/></svg>
+      </button>
+      <button class="zoom-pct hide-phone map-only" id="z-pct" title="Voltar para 100%">100%</button>
+      <button class="icon-btn hide-phone map-only" id="z-in" title="Aumentar zoom" aria-label="Aumentar zoom">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 12h12M12 6v12"/></svg>
+      </button>
+      <button class="icon-btn map-only" id="z-fit" title="Enquadrar o mapa" aria-label="Enquadrar o mapa">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+      <span class="divider only-phone"></span>
+      <button class="icon-btn only-phone" id="t-details" title="Notas e situação" aria-label="Notas e situação do tópico">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.5h10l4 4V20.5H5z"/><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="notecard" id="notecard" hidden><span class="eyebrow" id="nc-eb"></span><p id="nc-text"></p></div>
+  <div class="update-bar glass" id="update-bar" hidden><span>Nova versão do app pronta.</span><button class="btn primary" id="btn-update">Atualizar</button></div>
+  <div class="toast" id="toast" hidden></div>
+  <div id="dialog-root"></div>
+
+  <div class="trainer" id="trainer" hidden role="dialog" aria-modal="true" aria-label="Treino com flashcards">
+    <div class="tr-shell">
+      <div class="tr-top">
+        <span class="eyebrow" id="tr-scope"></span>
+        <span class="tr-count" id="tr-count"></span>
+        <button class="icon-btn" id="tr-close" aria-label="Encerrar treino" title="Encerrar (Esc)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="tr-bar"><i id="tr-bar"></i></div>
+      <div id="tr-play">
+        <div class="card3d" id="card">
+          <div class="card-move" id="card-move">
+            <span class="swipe-tag l" id="sw-l">Errei</span><span class="swipe-tag u" id="sw-u">Quase</span><span class="swipe-tag r" id="sw-r">Acertei</span>
+            <div class="card-inner">
+              <div class="face front">
+                <div class="crumb" id="cf-crumb"></div>
+                <div class="q"><span class="eyebrow" id="cf-kind"></span><h3 id="cf-text"></h3></div>
+                <div class="hint" id="cf-hint">Lembre o que sabe sobre isso e vire o cartão</div>
+              </div>
+              <div class="face back">
+                <div class="crumb" id="cb-crumb"></div>
+                <h4 id="cb-title"></h4>
+                <div class="ans" id="cb-ans"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tr-actions one" id="tr-actions" style="margin-top:18px"></div>
+        <p class="tr-swipe-hint" id="tr-swipe-hint" hidden>Ou deslize o cartão: ← errei · ↑ quase · → acertei</p>
+      </div>
+      <div class="tr-done" id="tr-done" hidden>
+        <span class="eyebrow" style="color:rgba(243,239,228,.7)">Sessão concluída</span>
+        <h3 id="td-title"></h3>
+        <div class="counts">
+          <div class="r"><b id="td-r">0</b><span>Errei</span></div>
+          <div class="l"><b id="td-l">0</b><span>Quase</span></div>
+          <div class="d"><b id="td-d">0</b><span>Acertei</span></div>
+        </div>
+        <div class="row">
+          <button class="btn primary" id="td-again">Treinar os que errei</button>
+          <button class="btn" id="td-close">Voltar ao mapa</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="vendor/jszip.min.js" defer></script>
+<script src="app.js" defer></script>
+</body>
+</html>
